@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Financial Causal Terminal
+
+A predictive financial intelligence system that forecasts future events impacting stock prices using causal models, probabilistic reasoning, and graph-based analysis.
+
+## Features
+
+- **Event Prediction**: Generate future events (macro, industry, company-specific) with explicit probabilities
+- **Causal Graph Visualization**: Display events as a DAG showing causal relationships
+- **Bayesian Updating**: Dynamically adjust probabilities as new signals arrive
+- **Financial Analysis**: Automatically detect anomalies in financial metrics
+- **Social Sentiment Integration**: Incorporate Twitter/X and Reddit data as probabilistic signals
+- **Interactive AI Chat**: Enable counterfactual reasoning and scenario exploration
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 with App Router, React 19, TypeScript
+- **UI**: Shadcn/ui components with TailwindCSS
+- **Visualization**: Recharts, React Flow
+- **Backend**: Supabase (PostgreSQL + Realtime + Auth)
+- **Testing**: fast-check for property-based testing
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+ and pnpm
+- Supabase account (for database and real-time features)
+
+### Installation
+
+1. Clone the repository and install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up Supabase:
+   - Create a project at [https://app.supabase.com](https://app.supabase.com)
+   - Copy your project URL and anon key
+   - Create `.env.local` from `.env.local.example`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.local.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   - Add your Supabase credentials to `.env.local`
 
-## Learn More
+3. Run the development server:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+bloomberg-terminal/
+├── app/              # Next.js App Router pages and layouts
+├── components/       # React components
+│   ├── panels/      # Main panel components
+│   ├── ui/          # Reusable UI components
+│   └── charts/      # Chart and visualization components
+├── lib/             # Utility functions and business logic
+├── types/           # TypeScript type definitions
+└── public/          # Static assets
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
+- `pnpm format` - Format code with Prettier
+- `pnpm format:check` - Check code formatting
+
+## Design Tokens
+
+The application uses custom design tokens for financial data visualization:
+
+- **Bullish Green**: `oklch(0.65 0.18 145)` - Positive/upward trends
+- **Bearish Red**: `oklch(0.6 0.25 25)` - Negative/downward trends
+- **Neutral Amber**: `oklch(0.75 0.18 85)` - Neutral/uncertain trends
+
+## Documentation
+
+For detailed requirements and design documentation, see:
+- [Requirements](../Telegram/.kiro/specs/ai-financial-terminal/requirements.md)
+- [Design](../Telegram/.kiro/specs/ai-financial-terminal/design.md)
+- [Tasks](../Telegram/.kiro/specs/ai-financial-terminal/tasks.md)
+
+## License
+
+Private project - All rights reserved
