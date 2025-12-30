@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Causal Terminal Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#135bec",
+                "background-light": "#f6f6f8",
+                "background-dark": "#0f1115", // Deep charcoal for terminal feel
+                "panel-dark": "#151a21", // Slightly lighter for panels
+                "border-dark": "#2d333b",
+                "bullish": "#10b981",
+                "bearish": "#ef4444",
+                "neutral": "#f59e0b",
+                },
+                fontFamily: {
+                "display": ["Inter", "sans-serif"],
+                "mono": ["Roboto Mono", "monospace"], // Good for financial data
+                },
+                borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111722; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d333b; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3e4652; 
+        }.bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, #232f48 1px, transparent 1px),
+                              linear-gradient(to bottom, #232f48 1px, transparent 1px);
+        }@keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }}
+        .animate-marquee {
+            animation: marquee 30s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-white">
+<header class="h-12 border-b border-border-dark bg-panel-dark flex items-center justify-between px-4 shrink-0 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 text-white">
+<span class="material-symbols-outlined text-primary" style="font-size: 24px;">hub</span>
+<h1 class="text-sm font-bold tracking-wide uppercase text-slate-200">Causal Terminal</h1>
+</div>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined" style="font-size: 18px;">search</span>
+</div>
+<input class="bg-background-dark border border-border-dark text-white text-xs rounded-md block w-64 pl-9 p-1.5 focus:ring-1 focus:ring-primary focus:border-primary placeholder-slate-500 transition-all" placeholder="Search Ticker (e.g. AAPL, NVDA)..." type="text" value="AAPL"/>
+</div>
+</div>
+<div class="flex items-center gap-6 text-sm">
+<div class="flex items-baseline gap-2">
+<span class="font-bold text-white">AAPL</span>
+<span class="text-slate-400 text-xs">Apple Inc.</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-mono text-lg font-bold tracking-tight">$175.40</span>
+<span class="flex items-center text-bullish font-mono text-xs font-medium bg-bullish/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined" style="font-size: 14px;">arrow_drop_up</span>
+                    1.2%
+                </span>
+</div>
+<div class="h-4 w-px bg-border-dark"></div>
+<div class="flex gap-4 text-xs text-slate-400">
+<div class="flex flex-col leading-none gap-0.5">
+<span class="text-[10px] uppercase tracking-wider text-slate-500">Vol</span>
+<span class="font-mono text-slate-300">52.4M</span>
+</div>
+<div class="flex flex-col leading-none gap-0.5">
+<span class="text-[10px] uppercase tracking-wider text-slate-500">Mkt Cap</span>
+<span class="font-mono text-slate-300">2.7T</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-slate-400 hover:text-white transition-colors relative">
+<span class="material-symbols-outlined" style="font-size: 20px;">notifications</span>
+<span class="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-panel-dark"></span>
+</button>
+<div class="size-7 rounded-full bg-slate-700 bg-center bg-cover" data-alt="User avatar profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAxVm7QX3Ciw_bnbqlp5-KsBZ6EK9gMI3boOBdte5nzWsG0bp6IfiIZL1uz_wH_KM1r3cqtsbcz1klEES0rG_Mx09UTROvMKWHaanWvJkt9g792eFwXoZ0mvo7sPhlwBpXuN1w4Q0zrOvV-BI-OmS66BYVbw-HGpTZHtevX35Aa8hPW0s9e3s43Ki--53FQ473byf1ZZlRff9G_WYrsVX5lpJRXV2-vG60441EkQLU5CQgh_wyIJoaVRIP7Uvq_llogSEE7ycK7bmw6");'></div>
+</div>
+</header>
+<div class="flex flex-1 min-h-0">
+<aside class="w-80 flex flex-col border-r border-border-dark bg-panel-dark z-10">
+<div class="h-10 border-b border-border-dark flex items-center justify-between px-3 bg-[#1a2029]">
+<h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Event &amp; Social Feed</h3>
+<button class="text-primary hover:text-blue-400 text-[10px] font-medium uppercase tracking-wide">Filter</button>
+</div>
+<div class="flex-1 overflow-y-auto p-2 space-y-2">
+<div class="mb-4">
+<h4 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-1 py-2 border-b border-border-dark">Forecasted Events</h4>
+<div class="group flex flex-col gap-2 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all mt-2">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-bullish" style="font-size: 18px;">trending_up</span>
+<span class="text-xs font-bold text-white">Q3 Earnings Beat</span>
+</div>
+<span class="text-[10px] font-mono text-slate-400">Oct 24</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<div class="flex flex-col gap-0.5">
+<span class="text-[10px] text-slate-500 uppercase">Probability</span>
+<span class="text-xs font-mono font-bold text-bullish">85%</span>
+</div>
+<div class="h-1.5 w-16 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-bullish w-[85%]"></div>
+</div>
+</div>
+<p class="text-[11px] text-slate-400 leading-tight mt-1">Consensus estimates trailing AI-adjusted revenue models.</p>
+</div>
+<div class="group flex flex-col gap-2 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-bearish" style="font-size: 18px;">warning</span>
+<span class="text-xs font-bold text-white">Supply Chain Delay</span>
+</div>
+<span class="text-[10px] font-mono text-slate-400">Nov 02</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<div class="flex flex-col gap-0.5">
+<span class="text-[10px] text-slate-500 uppercase">Probability</span>
+<span class="text-xs font-mono font-bold text-bearish">62%</span>
+</div>
+<div class="h-1.5 w-16 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-bearish w-[62%]"></div>
+</div>
+</div>
+<p class="text-[11px] text-slate-400 leading-tight mt-1">Typhoon impact on Taiwan semi-conductor logistics.</p>
+</div>
+<div class="group flex flex-col gap-2 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-neutral" style="font-size: 18px;">policy</span>
+<span class="text-xs font-bold text-white">Fed Rate Decision</span>
+</div>
+<span class="text-[10px] font-mono text-slate-400">Nov 15</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<div class="flex flex-col gap-0.5">
+<span class="text-[10px] text-slate-500 uppercase">Probability</span>
+<span class="text-xs font-mono font-bold text-neutral">95%</span>
+</div>
+<div class="h-1.5 w-16 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-neutral w-[95%]"></div>
+</div>
+</div>
+<p class="text-[11px] text-slate-400 leading-tight mt-1">Market priced in pause. Statement language key.</p>
+</div>
+<div class="group flex flex-col gap-2 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all opacity-70 hover:opacity-100">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-bullish" style="font-size: 18px;">handshake</span>
+<span class="text-xs font-bold text-white">Strategic M&amp;A</span>
+</div>
+<span class="text-[10px] font-mono text-slate-400">Dec 10</span>
+</div>
+<div class="flex items-center justify-between mt-1">
+<div class="flex flex-col gap-0.5">
+<span class="text-[10px] text-slate-500 uppercase">Probability</span>
+<span class="text-xs font-mono font-bold text-slate-400">25%</span>
+</div>
+<div class="h-1.5 w-16 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-bullish w-[25%]"></div>
+</div>
+</div>
+</div>
+</div>
+<div>
+<h4 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-1 py-2 border-b border-border-dark">Social Feed</h4>
+<div class="flex flex-col gap-1 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all mt-2">
+<div class="flex items-center gap-2">
+<svg aria-hidden="true" class="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+<path d="M18.244 2.25h3.308l-7.227 8.26L21.614 22H16.26l-4.71-5.678L7.225 22H3.98l7.21-8.264L2.405 2.25H8.05l3.868 4.64L18.244 2.25zm-.335 18.005h2.1L7.433 4.5H5.213l12.696 15.755z"></path>
+</svg>
+<span class="text-[10px] font-bold text-blue-400">@StockGenius</span>
+<span class="text-[10px] text-slate-500 ml-auto">2h ago</span>
+</div>
+<p class="text-[11px] text-slate-300 leading-tight">Looks like $AAPL is gearing up for a big earnings beat! Supply chain data is looking strong. #Apple #Stocks</p>
+</div>
+<div class="flex flex-col gap-1 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all">
+<div class="flex items-center gap-2">
+<svg aria-hidden="true" class="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.192 2.766 7.74 6.597 9.043.483.087.66-.208.66-.46 0-.227-.008-.946-.013-1.854-2.69.587-3.264-1.157-3.264-1.157-.44-.993-1.07-1.256-1.07-1.256-.872-.598.066-.587.066-.587.965.068 1.474.992 1.474.992.858 1.47 2.25.992 2.793.757.087-.587.336-.992.612-1.22-.19-.774-.78-1.597-2.484-1.597-1.785 0-3.242 1.436-3.242 3.204 0 .717.25 1.378.66 1.865-.087.09-.32.48-.12.98.055.137.318.175.6.09.282-.087.828-.275 1.352-.463 1.05.282 2.164.42 3.28.42.062 0 .12-.002.18-.002.043.003.087.003.13.003 1.116 0 2.23-.138 3.28-.42.524.19.98.376 1.352.463.282.085.545.05.6-.09.2-.5-.033-.89-.12-.98.41-.487.66-1.15.66-1.865 0-1.768-1.457-3.204-3.242-3.204-1.704 0-2.294.823-2.484 1.597.276.228.525.633.612 1.22.543.235 1.936-.757 1.936-.757.73-.598 1.24-.992 1.474-.992.38 0 .84.587 1.47.992.66.44 1.07 1.256 1.07 1.256C16.234 16.843 19 13.295 19 10c0-5.523-4.477-10-10-10zM10 2a8 8 0 100 16A8 8 0 0010 2z" fill-rule="evenodd"></path>
+</svg>
+<span class="text-[10px] font-bold text-orange-500">r/WallStreetBets</span>
+<span class="text-[10px] text-slate-500 ml-auto">3h ago</span>
+</div>
+<p class="text-[11px] text-slate-300 leading-tight">$AAPL earnings are next week, loading up on calls. Probability of beat is 85% - easy money. YOLO!</p>
+</div>
+<div class="flex flex-col gap-1 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all">
+<div class="flex items-center gap-2">
+<svg aria-hidden="true" class="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+<path d="M18.244 2.25h3.308l-7.227 8.26L21.614 22H16.26l-4.71-5.678L7.225 22H3.98l7.21-8.264L2.405 2.25H8.05l3.868 4.64L18.244 2.25zm-.335 18.005h2.1L7.433 4.5H5.213l12.696 15.755z"></path>
+</svg>
+<span class="text-[10px] font-bold text-blue-400">@FinBuzz</span>
+<span class="text-[10px] text-slate-500 ml-auto">5h ago</span>
+</div>
+<p class="text-[11px] text-slate-300 leading-tight">Concern growing over potential typhoon impact on Taiwan's semi-conductor supply chain, could affect $AAPL &amp; others. #SupplyChain #Tech</p>
+</div>
+<div class="flex flex-col gap-1 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all">
+<div class="flex items-center gap-2">
+<svg aria-hidden="true" class="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.192 2.766 7.74 6.597 9.043.483.087.66-.208.66-.46 0-.227-.008-.946-.013-1.854-2.69.587-3.264-1.157-3.264-1.157-.44-.993-1.07-1.256-1.07-1.256-.872-.598.066-.587.066-.587.965.068 1.474.992 1.474.992.858 1.47 2.25.992 2.793.757.087-.587.336-.992.612-1.22-.19-.774-.78-1.597-2.484-1.597-1.785 0-3.242 1.436-3.242 3.204 0 .717.25 1.378.66 1.865-.087.09-.32.48-.12.98.055.137.318.175.6.09.282-.087.828-.275 1.352-.463 1.05.282 2.164.42 3.28.42.062 0 .12-.002.18-.002.043.003.087.003.13.003 1.116 0 2.23-.138 3.28-.42.524.19.98.376 1.352.463.282.085.545.05.6-.09.2-.5-.033-.89-.12-.98.41-.487.66-1.15.66-1.865 0-1.768-1.457-3.204-3.242-3.204-1.704 0-2.294.823-2.484 1.597.276.228.525.633.612 1.22.543.235 1.936-.757 1.936-.757.73-.598 1.24-.992 1.474-.992.38 0 .84.587 1.47.992.66.44 1.07 1.256 1.07 1.256C16.234 16.843 19 13.295 19 10c0-5.523-4.477-10-10-10zM10 2a8 8 0 100 16A8 8 0 0010 2z" fill-rule="evenodd"></path>
+</svg>
+<span class="text-[10px] font-bold text-orange-500">r/Investing</span>
+<span class="text-[10px] text-slate-500 ml-auto">6h ago</span>
+</div>
+<p class="text-[11px] text-slate-300 leading-tight">Is anyone else adjusting their portfolios for the upcoming Fed decision? 95% chance of a pause seems baked in, but hawkish language could hit growth stocks like $AAPL.</p>
+</div>
+<div class="flex flex-col gap-1 bg-background-dark hover:bg-[#1e232e] border border-border-dark hover:border-slate-600 rounded-lg p-3 cursor-pointer transition-all">
+<div class="flex items-center gap-2">
+<svg aria-hidden="true" class="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+<path d="M18.244 2.25h3.308l-7.227 8.26L21.614 22H16.26l-4.71-5.678L7.225 22H3.98l7.21-8.264L2.405 2.25H8.05l3.868 4.64L18.244 2.25zm-.335 18.005h2.1L7.433 4.5H5.213l12.696 15.755z"></path>
+</svg>
+<span class="text-[10px] font-bold text-blue-400">@MarketPulse</span>
+<span class="text-[10px] text-slate-500 ml-auto">8h ago</span>
+</div>
+<p class="text-[11px] text-slate-300 leading-tight">Whispers of potential strategic M&amp;A activity in the tech sector, could $AAPL be eyeing a smaller player to boost its services? Keep an eye out. #TechMNA</p>
+</div>
+</div>
+</div></aside>
+<main class="flex-1 flex flex-col min-w-0 bg-background-dark relative">
+<div class="h-10 border-b border-border-dark flex items-center justify-between px-4 bg-background-dark/50 backdrop-blur-sm z-10">
+<div class="flex items-center gap-4">
+<div class="flex bg-panel-dark rounded p-0.5 border border-border-dark">
+<button class="px-3 py-0.5 text-[11px] font-medium text-slate-400 hover:text-white rounded hover:bg-slate-700">1H</button>
+<button class="px-3 py-0.5 text-[11px] font-medium text-slate-400 hover:text-white rounded hover:bg-slate-700">4H</button>
+<button class="px-3 py-0.5 text-[11px] font-medium text-white bg-slate-700 shadow-sm rounded">1D</button>
+<button class="px-3 py-0.5 text-[11px] font-medium text-slate-400 hover:text-white rounded hover:bg-slate-700">1W</button>
+</div>
+<div class="h-4 w-px bg-border-dark"></div>
+<div class="flex items-center gap-2 text-xs text-slate-400">
+<span class="flex items-center gap-1 cursor-pointer hover:text-white"><span class="material-symbols-outlined text-[16px]">show_chart</span> Causal</span>
+<span class="flex items-center gap-1 cursor-pointer hover:text-white"><span class="material-symbols-outlined text-[16px]">candlestick_chart</span> Candles</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-3 py-1 rounded text-xs font-medium transition-colors">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                        Run Simulation
+                    </button>
+</div>
+</div>
+<div class="flex-1 relative bg-grid-pattern overflow-hidden">
+<div class="absolute top-0 bottom-0 left-[60%] border-l border-dashed border-primary/40 z-0 flex flex-col items-center pt-2">
+<span class="bg-background-dark text-primary border border-primary/30 px-2 py-0.5 text-[10px] rounded-full font-mono">TODAY</span>
+</div>
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+<defs>
+<linearGradient id="gradientBullish" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#10b981" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#10b981" stop-opacity="0"></stop>
+</linearGradient>
+<linearGradient id="gradientBearish" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#ef4444" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#ef4444" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+<path d="M0,250 L40,240 L80,260 L120,230 L160,245 L200,210 L240,220 L280,180 L320,195 L360,170 L400,180 L440,160 L480,175 L520,150 L560,165 L600,140 L[60%],140" fill="none" stroke="#94a3b8" stroke-width="1.5"></path>
+<path d="M[60%],140 C[70%],120 [75%],100 [85%],80" fill="none" stroke="#10b981" stroke-dasharray="4 2" stroke-width="2"></path>
+<path d="M[60%],140 L[85%],80 L[85%],400 L[60%],400 Z" fill="url(#gradientBullish)" opacity="0.5" stroke="none"></path>
+<path d="M[60%],140 C[65%],160 [70%],200 [80%],240" fill="none" opacity="0.6" stroke="#ef4444" stroke-dasharray="4 4" stroke-width="1"></path>
+<path d="M[60%],140 C[70%],140 [80%],145 [90%],150" fill="none" opacity="0.4" stroke="#f59e0b" stroke-dasharray="2 2" stroke-width="1"></path>
+</svg>
+<div class="absolute inset-0 z-10">
+<div class="absolute left-[10%] top-[60%] text-[10px] text-slate-500 font-mono">Earnings Miss</div>
+<div class="absolute left-[40%] top-[45%] text-[10px] text-slate-500 font-mono">Product Demo</div>
+<div class="absolute left-[72%] top-[25%] -translate-x-1/2 -translate-y-1/2 group cursor-pointer">
+<div class="relative size-12 flex items-center justify-center">
+<svg class="absolute inset-0 rotate-[-90deg]" viewBox="0 0 36 36">
+<path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="2"></path>
+<path class="text-bullish drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="85, 100" stroke-width="2"></path>
+</svg>
+<div class="size-8 bg-panel-dark rounded-full border border-border-dark flex items-center justify-center text-[10px] font-bold text-white group-hover:bg-bullish group-hover:text-black transition-colors shadow-lg">
+                                Q3
+                            </div>
+</div>
+<div class="absolute top-14 left-1/2 -translate-x-1/2 bg-panel-dark border border-border-dark p-2 rounded w-32 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+<p class="text-[10px] font-bold text-white mb-1">Q3 Earnings Beat</p>
+<p class="text-[9px] text-bullish">+4.2% Impact</p>
+</div>
+</div>
+<div class="absolute left-[78%] top-[60%] -translate-x-1/2 -translate-y-1/2 group cursor-pointer">
+<div class="relative size-10 flex items-center justify-center">
+<svg class="absolute inset-0 rotate-[-90deg]" viewBox="0 0 36 36">
+<path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="2"></path>
+<path class="text-bearish" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="62, 100" stroke-width="2"></path>
+</svg>
+<div class="size-6 bg-panel-dark rounded-full border border-border-dark flex items-center justify-center text-[9px] font-bold text-white group-hover:bg-bearish group-hover:text-white transition-colors shadow-lg">
+                                SC
+                            </div>
+</div>
+</div>
+<div class="absolute right-0 top-[20%] bg-bullish text-black px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-l">$192.50</div>
+<div class="absolute right-0 top-[35%] bg-panel-dark border-l border-border-dark text-slate-400 px-1.5 py-0.5 text-[10px] font-mono">$175.40</div>
+</div>
+</div>
+<div class="h-48 border-t border-border-dark bg-panel-dark flex flex-col shrink-0">
+<div class="flex items-center px-4 border-b border-border-dark">
+<button class="px-4 py-2 text-xs font-medium text-primary border-b-2 border-primary bg-primary/5">Industry Context</button>
+<button class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors">Competitor Analysis</button>
+<button class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors">Supply Chain Risks</button>
+</div>
+<div class="flex-1 p-4 grid grid-cols-3 gap-4 overflow-y-auto">
+<div class="flex flex-col gap-2">
+<h4 class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Sector Sentiment (Tech Hardware)</h4>
+<div class="flex items-end gap-2 mt-1">
+<span class="text-xl font-bold text-white">Bullish</span>
+<span class="text-xs text-bullish mb-1">High Confidence</span>
+</div>
+<div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+<div class="bg-gradient-to-r from-bullish to-primary h-full w-[78%]"></div>
+</div>
+<p class="text-[10px] text-slate-400 mt-1">Sector rotation into mega-cap tech driving valuations higher despite yield pressure.</p>
+</div>
+<div class="flex flex-col gap-2 border-l border-border-dark pl-4">
+<h4 class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">P/E Ratio Relative to Peers</h4>
+<div class="flex items-end gap-2 mt-1">
+<span class="text-xl font-bold text-white">28.4x</span>
+<span class="text-xs text-slate-400 mb-1">vs 24.1x Avg</span>
+</div>
+<div class="flex h-12 items-end gap-1 mt-1">
+<div class="w-1/4 bg-slate-700 h-[60%] rounded-t-sm relative group"><div class="absolute -top-4 w-full text-center text-[8px] opacity-0 group-hover:opacity-100">MSFT</div></div>
+<div class="w-1/4 bg-primary h-[80%] rounded-t-sm relative group"><div class="absolute -top-4 w-full text-center text-[8px] opacity-0 group-hover:opacity-100">AAPL</div></div>
+<div class="w-1/4 bg-slate-700 h-[40%] rounded-t-sm relative group"><div class="absolute -top-4 w-full text-center text-[8px] opacity-0 group-hover:opacity-100">GOOG</div></div>
+<div class="w-1/4 bg-slate-700 h-[90%] rounded-t-sm relative group"><div class="absolute -top-4 w-full text-center text-[8px] opacity-0 group-hover:opacity-100">NVDA</div></div>
+</div>
+</div>
+<div class="flex flex-col gap-2 border-l border-border-dark pl-4">
+<h4 class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Correlation Matrix</h4>
+<div class="grid grid-cols-2 gap-2 mt-1">
+<div class="bg-background-dark p-2 rounded border border-border-dark flex justify-between items-center">
+<span class="text-[10px] text-slate-300">vs NASDAQ</span>
+<span class="text-xs font-mono text-bullish">0.92</span>
+</div>
+<div class="bg-background-dark p-2 rounded border border-border-dark flex justify-between items-center">
+<span class="text-[10px] text-slate-300">vs USD</span>
+<span class="text-xs font-mono text-bearish">-0.45</span>
+</div>
+<div class="bg-background-dark p-2 rounded border border-border-dark flex justify-between items-center">
+<span class="text-[10px] text-slate-300">vs VIX</span>
+<span class="text-xs font-mono text-bearish">-0.61</span>
+</div>
+<div class="bg-background-dark p-2 rounded border border-border-dark flex justify-between items-center">
+<span class="text-[10px] text-slate-300">vs BTC</span>
+<span class="text-xs font-mono text-neutral">0.12</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<aside class="w-80 flex flex-col border-l border-border-dark bg-panel-dark z-10">
+<div class="h-10 border-b border-border-dark flex items-center justify-between px-3 bg-[#1a2029]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">smart_toy</span>
+<h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">AI Analyst</h3>
+</div>
+<span class="size-2 bg-bullish rounded-full animate-pulse"></span>
+</div>
+<div class="flex-1 overflow-y-auto p-3 space-y-4">
+<div class="flex justify-end">
+<div class="bg-[#232f48] text-white text-xs p-3 rounded-t-lg rounded-bl-lg max-w-[90%] shadow-sm">
+                        Why is the Q3 probability so high?
+                    </div>
+</div>
+<div class="flex justify-start">
+<div class="bg-background-dark border border-border-dark text-slate-300 text-xs p-3 rounded-t-lg rounded-br-lg max-w-[95%] shadow-sm space-y-2">
+<p>Based on channel checks from 3 suppliers (Foxconn, TSMC, Luxshare), initial iPhone 15 Pro yields are <span class="text-bullish font-bold">12% higher</span> than historical baselines.</p>
+<p>Additionally, services revenue growth has re-accelerated in China despite macro headwinds.</p>
+<div class="mt-2 pt-2 border-t border-border-dark">
+<p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Causal Factors</p>
+<div class="flex flex-wrap gap-1">
+<span class="bg-bullish/10 text-bullish px-1.5 py-0.5 rounded text-[10px]">Supply Chain +</span>
+<span class="bg-bullish/10 text-bullish px-1.5 py-0.5 rounded text-[10px]">China Demand +</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-3 border-t border-border-dark bg-[#1a2029]">
+<div class="flex gap-2 mb-2 overflow-x-auto pb-1 no-scrollbar">
+<button class="shrink-0 bg-background-dark hover:bg-primary hover:text-white text-slate-400 border border-border-dark px-2 py-1 rounded text-[10px] transition-colors">Explain Reasoning</button>
+<button class="shrink-0 bg-background-dark hover:bg-primary hover:text-white text-slate-400 border border-border-dark px-2 py-1 rounded text-[10px] transition-colors">Bear Case</button>
+<button class="shrink-0 bg-background-dark hover:bg-primary hover:text-white text-slate-400 border border-border-dark px-2 py-1 rounded text-[10px] transition-colors">Simulate +5% Vol</button>
+</div>
+<div class="relative">
+<input class="w-full bg-background-dark border border-border-dark text-white text-xs rounded-md pl-3 pr-8 py-2.5 focus:ring-1 focus:ring-primary focus:border-primary placeholder-slate-500" placeholder="Ask causal analyst..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary hover:text-white">
+<span class="material-symbols-outlined" style="font-size: 18px;">send</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+<footer class="h-8 bg-[#0b0e14] border-t border-border-dark flex items-center shrink-0 overflow-hidden relative">
+<div class="flex items-center absolute whitespace-nowrap animate-marquee gap-8 pl-4">
+<div class="flex items-center gap-2 text-xs font-mono">
+<span class="text-slate-400">S&amp;P 500</span>
+<span class="text-bullish">4,378.22 (+0.4%)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono">
+<span class="text-slate-400">NASDAQ</span>
+<span class="text-bullish">13,492.51 (+0.9%)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono">
+<span class="text-slate-400">VIX</span>
+<span class="text-bearish">16.22 (-2.1%)</span> 
+</div>
+<div class="flex items-center gap-2 text-xs font-mono">
+<span class="text-slate-400">US 10Y</span>
+<span class="text-neutral">4.82% (+0.01)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono border-l border-border-dark pl-8">
+<span class="text-primary font-bold uppercase">MACRO:</span>
+<span class="text-slate-300">FOMC Meeting Minutes Release (14:00 EST)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono border-l border-border-dark pl-8">
+<span class="text-primary font-bold uppercase">NEWS:</span>
+<span class="text-slate-300">Oil prices stabilizes as OPEC+ hints at output freeze.</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono">
+<span class="text-slate-400">EUR/USD</span>
+<span class="text-neutral">1.056 (-0.001)</span>
+</div>
+</div>
+</footer>
+</body></html>
