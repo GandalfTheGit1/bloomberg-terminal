@@ -14,7 +14,7 @@ const timingWindowArb: fc.Arbitrary<TimingWindow> = fc.record({
 
 const impactEstimateArb: fc.Arbitrary<ImpactEstimate> = fc.record({
   direction: impactDirectionArb,
-  magnitude: fc.float({ min: -1000, max: 1000 }),
+  magnitude: fc.float({ min: -1000, max: 1000, noNaN: true }),
   confidence: fc.integer({ min: 0, max: 100 }),
 })
 
@@ -22,24 +22,24 @@ const sourceArb: fc.Arbitrary<Source> = fc.record({
   type: fc.constantFrom('market_data', 'social', 'financial', 'news', 'macro'),
   url: fc.option(fc.webUrl()),
   timestamp: fc.date(),
-  reliability: fc.float({ min: 0, max: 1 }),
+  reliability: fc.float({ min: 0, max: 1, noNaN: true }),
 })
 
 const probabilityUpdateArb: fc.Arbitrary<ProbabilityUpdate> = fc.record({
   timestamp: fc.date(),
-  prior: fc.float({ min: 0, max: 100 }),
-  posterior: fc.float({ min: 0, max: 100 }),
+  prior: fc.float({ min: 0, max: 100, noNaN: true }),
+  posterior: fc.float({ min: 0, max: 100, noNaN: true }), // Explicitly exclude NaN values
   signal: fc.record({
     type: fc.constantFrom('market_data', 'social', 'financial', 'news', 'macro'),
     source: fc.string(),
     timestamp: fc.date(),
     data: fc.anything(),
-    reliability: fc.float({ min: 0, max: 1 }),
+    reliability: fc.float({ min: 0, max: 1, noNaN: true }),
   }),
   evidence: fc.record({
     supports: fc.boolean(),
-    strength: fc.float({ min: 0, max: 1 }),
-    likelihood: fc.float({ min: 0, max: 1 }),
+    strength: fc.float({ min: 0, max: 1, noNaN: true }),
+    likelihood: fc.float({ min: 0, max: 1, noNaN: true }),
   }),
 })
 
@@ -48,16 +48,22 @@ const eventArb: fc.Arbitrary<Event> = fc.record({
   type: eventTypeArb,
   title: fc.string({ minLength: 1, maxLength: 100 }),
   description: fc.string({ minLength: 1, maxLength: 500 }),
-  probability: fc.float({ min: 0, max: 100 }),
-  priorProbability: fc.float({ min: 0, max: 100 }),
+  probability: fc.float({ min: 0, max: 100, noNaN: true }),
+  priorProbability: fc.float({ min: 0, max: 100, noNaN: true }),
   timingWindow: timingWindowArb,
   impact: fc.record({
     revenue: fc.option(impactEstimateArb),
     margin: fc.option(impactEstimateArb),
     marketCap: fc.option(impactEstimateArb),
     stockPrice: fc.option(impactEstimateArb),
-  }),
-  expectedValue: fc.float({ min: -10000, max: 10000 }),
+  }).filter(impact => 
+    // Ensure at least one impact field is defined (not null)
+    impact.revenue !== null || 
+    impact.margin !== null || 
+    impact.marketCap !== null || 
+    impact.stockPrice !== null
+  ),
+  expectedValue: fc.float({ min: -10000, max: 10000, noNaN: true }),
   confidence: fc.integer({ min: 0, max: 100 }),
   sources: fc.array(sourceArb, { minLength: 0, maxLength: 10 }),
   drivers: fc.array(fc.string(), { minLength: 0, maxLength: 10 }),
