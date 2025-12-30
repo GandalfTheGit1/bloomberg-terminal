@@ -43,7 +43,7 @@ pnpm install
 cp .env.local.example .env.local
 ```
 
-   - Add your Supabase credentials to `.env.local`
+- Add your Supabase credentials to `.env.local`
 
 3. Run the development server:
 
@@ -87,6 +87,7 @@ The application uses custom design tokens for financial data visualization:
 ## Documentation
 
 For detailed requirements and design documentation, see:
+
 - [Requirements](../Telegram/.kiro/specs/ai-financial-terminal/requirements.md)
 - [Design](../Telegram/.kiro/specs/ai-financial-terminal/design.md)
 - [Tasks](../Telegram/.kiro/specs/ai-financial-terminal/tasks.md)
