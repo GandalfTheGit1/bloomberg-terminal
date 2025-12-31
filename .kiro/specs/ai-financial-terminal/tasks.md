@@ -55,7 +55,7 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - Test invalid inputs (negative probabilities)
     - _Requirements: 1.4_
 
-  - [-] 3.4 Parse and integrate causal terminal dashboard UI components
+  - [x] 3.4 Parse and integrate causal terminal dashboard UI components
     - Extract and adapt components from v0-causal-terminal-dashboard/
     - Migrate DashboardHeader, ForecastedEvents, SocialFeed, CausalChart, ChatPanel, IndustryLookback components
     - Convert to match project structure and design system (Shadcn/ui + TailwindCSS)
@@ -65,6 +65,66 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - _Requirements: 2.2, 2.7, 3.1, 4.1, 6.1, 7.1, 11.1_
   
   - Commit and push: `git add . && git commit -m "feat: implement Bayesian update engine with tests and parse causal terminal UI" && git push`
+
+- [x] 3.5. UI Component State Integration
+  - [x] 3.5.1 Create global state management with Zustand
+    - Create lib/store.ts with Zustand store
+    - Define state interfaces for events, company data, UI state
+    - Implement actions for updating events, filters, selected company
+    - Add panel size persistence state
+    - _Requirements: 11.4, 12.1_
+
+  - [x] 3.5.2 Create mock data providers
+    - Create lib/mockData.ts with comprehensive mock datasets
+    - Generate realistic event data with probabilities and timing
+    - Create mock financial metrics data
+    - Generate mock social sentiment data
+    - Create mock industry and competitor data
+    - _Requirements: 1.1, 1.2, 1.3, 5.8, 8.2_
+
+  - [x] 3.5.3 Connect ForecastedEvents component to state
+    - Update ForecastedEvents to use Zustand store
+    - Implement event filtering and sorting logic
+    - Add click handlers for event selection
+    - Connect to mock data provider
+    - _Requirements: 3.1, 3.2, 3.4, 3.5_
+
+  - [x] 3.5.4 Connect SocialFeed component to state
+    - Update SocialFeed to use Zustand store
+    - Implement sentiment filtering logic
+    - Connect to mock social data
+    - Add real-time update simulation
+    - _Requirements: 8.1, 8.2, 8.3_
+
+  - [x] 3.5.5 Connect CausalChart component to state
+    - Update CausalChart to use Zustand store
+    - Implement event node click handlers
+    - Connect chart data to selected company
+    - Add event tooltip data from store
+    - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
+
+  - [x] 3.5.6 Connect ChatPanel to n8n AI agent integration
+    - Create lib/n8nClient.ts for n8n webhook communication
+    - Implement chat message handling with n8n workflows
+    - Add typing indicators and response streaming
+    - Connect chat context to current events and company data
+    - _Requirements: 4.1, 4.2, 4.3, 16.2, 16.3_
+
+  - [x] 3.5.7 Connect DashboardHeader to state
+    - Update DashboardHeader to use Zustand store
+    - Implement company search functionality
+    - Connect stock price and metrics to selected company
+    - Add notification system integration
+    - _Requirements: 2.2, 13.1_
+
+  - [x] 3.5.8 Connect IndustryLookback to state
+    - Update IndustryLookback to use Zustand store
+    - Connect to industry and competitor data
+    - Implement industry switching logic
+    - Add competitor comparison functionality
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+
+  - Commit and push: `git add . && git commit -m "feat: integrate UI components with state management and mock data" && git push`
 
 - [ ] 4. Expected Value calculation
   - [ ] 4.1 Implement Expected Value calculation function
@@ -78,6 +138,54 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - **Validates: Requirements 1.3, 9.2**
   
   - Commit and push: `git add . && git commit -m "feat: implement Expected Value calculation with tests" && git push`
+
+- [ ] 4.5. Financial Analysis Panel Implementation
+  - [ ] 4.5.1 Create FinancialAnalysisPanel component
+    - Create components/panels/FinancialAnalysisPanel.tsx
+    - Implement tab system (Financial Snapshot, Financial Stress, Earnings Quality, Cycle & Demand)
+    - Create MetricCard sub-component with trend indicators
+    - Add industry-aware metric selection logic
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.8, 5.9_
+
+  - [ ] 4.5.2 Implement Financial Snapshot tab
+    - Create 2×4 KPI grid with industry-aware metrics
+    - Display Cash runway, Net Debt/EBITDA, FCF margin, Gross margin
+    - Add Inventory growth vs revenue, Capex/Revenue, ROIC vs WACC, SBC % Revenue
+    - Implement trend indicators (↑ ↓ →) and status colors
+    - _Requirements: 5.5, 5.8_
+
+  - [ ] 4.5.3 Implement Financial Stress tab
+    - Create debt maturity timeline visualization
+    - Add liquidity buffer gauge component
+    - Display credit lines available vs used
+    - Highlight refinancing cliffs and dilution risk zones
+    - _Requirements: 5.10, 5.11_
+
+  - [ ] 4.5.4 Implement Earnings Quality tab
+    - Create Net Income vs Operating Cash Flow comparison
+    - Display accruals ratio and one-off expenses frequency
+    - Add capitalized costs trend visualization
+    - _Requirements: 5.13_
+
+  - [ ] 4.5.5 Implement Cycle & Demand tab
+    - Display Inventory days (DIO) and Backlog/Book-to-Bill
+    - Add Revenue vs inventory delta visualization
+    - Show Customer concentration percentage
+    - _Requirements: 5.16_
+
+  - [ ] 4.5.6 Connect Financial Analysis Panel to main layout
+    - Update app/page.tsx to include FinancialAnalysisPanel
+    - Position panel centrally below chart and above industry section
+    - Connect to Zustand store for financial data
+    - _Requirements: 5.1_
+
+  - [ ] 4.5.7 Implement metric tooltips and click handlers
+    - Create MetricTooltip component with explanations
+    - Add click handlers to open detailed sub-panels
+    - Link metrics to related events in Event Graph
+    - _Requirements: 5.6, 5.7_
+
+  - Commit and push: `git add . && git commit -m "feat: implement Financial Analysis Panel with all tabs" && git push`
 
 - [ ] 5. Event Graph management
   - [ ] 5.1 Implement graph data structure and acyclicity validation
@@ -98,6 +206,58 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - _Requirements: 12.2, 12.5_
   
   - Commit and push: `git add . && git commit -m "feat: implement Event Graph management with acyclicity validation" && git push`
+
+- [ ] 5.5. N8N AI Agent Integration
+  - [ ] 5.5.1 Create n8n workflow templates
+    - Create n8n-workflows/ai-chat-agent.json
+    - Design workflow for processing chat messages and generating responses
+    - Include context injection from current events and company data
+    - Add response formatting and event reference linking
+    - _Requirements: 4.3, 16.8_
+
+  - [ ] 5.5.2 Create n8n financial analysis workflow
+    - Create n8n-workflows/financial-analysis-agent.json
+    - Design workflow for analyzing financial metrics
+    - Include threshold detection and anomaly identification
+    - Add automatic event generation from financial data
+    - _Requirements: 5.19, 5.20, 5.21, 16.8_
+
+  - [ ] 5.5.3 Create n8n social sentiment workflow
+    - Create n8n-workflows/social-sentiment-agent.json
+    - Design workflow for processing social media data
+    - Include sentiment classification and aggregation
+    - Add executive post identification logic
+    - _Requirements: 8.2, 8.3, 8.4, 8.5, 16.8_
+
+  - [ ] 5.5.4 Implement n8n webhook client
+    - Create lib/n8nClient.ts with webhook communication
+    - Add authentication and error handling
+    - Implement request/response formatting
+    - Add retry logic and timeout handling
+    - _Requirements: 16.2, 16.3, 16.5_
+
+  - [ ] 5.5.5 Connect ChatPanel to n8n AI agent
+    - Update ChatPanel to use n8n webhook for message processing
+    - Implement context injection (current company, events, metrics)
+    - Add response streaming and typing indicators
+    - Handle event reference linking in responses
+    - _Requirements: 4.3, 4.6, 16.2_
+
+  - [ ] 5.5.6 Connect Financial Analysis Panel to n8n
+    - Update FinancialAnalysisPanel to trigger n8n workflows
+    - Send financial metrics to n8n for analysis
+    - Receive and process generated events from n8n
+    - Update UI with auto-generated events
+    - _Requirements: 5.19, 5.20, 5.21, 5.23_
+
+  - [ ] 5.5.7 Connect Social Feed to n8n processing
+    - Update SocialFeed to send data to n8n for processing
+    - Receive classified and aggregated sentiment data
+    - Update UI with processed social sentiment
+    - Handle executive post identification
+    - _Requirements: 8.2, 8.3, 8.4, 8.5_
+
+  - Commit and push: `git add . && git commit -m "feat: integrate n8n AI agents with UI components" && git push`
 
 - [ ] 6. Checkpoint - Core logic validation
   - Ensure all tests pass, ask the user if questions arise.
@@ -370,6 +530,29 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
   
   - Commit and push: `git add . && git commit -m "feat: implement Industry Panel with competitor comparisons" && git push`
 
+- [ ] 15.5. Industry Panel Integration
+  - [ ] 15.5.1 Create IndustryPanel component
+    - Create components/panels/IndustryPanel.tsx
+    - Create IndustrySelector and CompetitorCard sub-components
+    - Implement industry switching functionality
+    - Add competitor comparison cards
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+
+  - [ ] 15.5.2 Connect IndustryPanel to state
+    - Update IndustryPanel to use Zustand store
+    - Connect to industry and competitor mock data
+    - Implement industry change handlers
+    - Update Financial Analysis Panel when industry changes
+    - _Requirements: 6.4, 6.5_
+
+  - [ ] 15.5.3 Integrate IndustryPanel with main layout
+    - Update app/page.tsx to include IndustryPanel
+    - Position below Financial Analysis Panel
+    - Ensure proper responsive behavior
+    - _Requirements: 6.1_
+
+  - Commit and push: `git add . && git commit -m "feat: integrate Industry Panel with state management" && git push`
+
 - [ ] 16. Macro Events Ribbon
   - [ ] 16.1 Create MacroEventsRibbon component
     - Create components/panels/MacroEventsRibbon.tsx
@@ -397,6 +580,35 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - _Requirements: 7.5_
   
   - Commit and push: `git add . && git commit -m "feat: implement Macro Events Ribbon with filters" && git push`
+
+- [ ] 16.5. Macro Events Ribbon Integration
+  - [ ] 16.5.1 Create MacroEventsRibbon component
+    - Create components/panels/MacroEventsRibbon.tsx
+    - Create MacroEventCard and CategoryFilter sub-components
+    - Implement horizontal scrolling ribbon layout
+    - Add category filter functionality
+    - _Requirements: 7.1, 7.2, 7.3_
+
+  - [ ] 16.5.2 Connect MacroEventsRibbon to state
+    - Update MacroEventsRibbon to use Zustand store
+    - Connect to mock macro events data
+    - Implement event selection and overlay logic
+    - Add real-time updates for new macro events
+    - _Requirements: 7.4, 7.5_
+
+  - [ ] 16.5.3 Integrate MacroEventsRibbon with CausalChart
+    - Update CausalChart to display selected macro events
+    - Implement event overlay visualization on chart
+    - Add interaction between ribbon selection and chart display
+    - _Requirements: 7.4_
+
+  - [ ] 16.5.4 Add MacroEventsRibbon to main layout
+    - Update app/page.tsx to include MacroEventsRibbon
+    - Position as fixed ribbon at bottom of screen
+    - Ensure proper z-index and responsive behavior
+    - _Requirements: 7.1_
+
+  - Commit and push: `git add . && git commit -m "feat: integrate Macro Events Ribbon with chart and state" && git push`
 
 - [ ] 17. Social sentiment integration
   - [ ] 17.1 Implement social post classification
@@ -469,6 +681,31 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
   - [ ] 18.8 Write property test for update history display
     - **Property 28: Bayesian Update History Display**
     - **Validates: Requirements 9.6**
+
+  - [ ] 18.9 Write property tests for UI component state management
+    - **Property 36: UI State Consistency**
+    - Test that UI state changes propagate correctly across all panels
+    - **Validates: Requirements 11.1, 11.2**
+
+  - [ ] 18.10 Write property tests for n8n integration
+    - **Property 37: N8N Response Consistency**
+    - Test that n8n webhook responses are properly formatted and handled
+    - **Validates: Requirements 16.2, 16.3**
+
+  - [ ] 18.11 Write property tests for real-time updates
+    - **Property 38: Real-time Update Consistency**
+    - Test that real-time updates maintain data consistency across panels
+    - **Validates: Requirements 13.1, 13.2**
+
+  - [ ] 18.12 Write property tests for Financial Analysis Panel
+    - **Property 39: Financial Metric Validation**
+    - Test that financial metrics are correctly calculated and displayed
+    - **Validates: Requirements 5.8, 5.9**
+
+  - [ ] 18.13 Write property tests for Macro Events Ribbon
+    - **Property 40: Macro Event Display Consistency**
+    - Test that macro events are correctly filtered and displayed
+    - **Validates: Requirements 7.2, 7.3**
   
   - Commit and push: `git add . && git commit -m "feat: implement probabilistic display requirements" && git push`
 
@@ -595,6 +832,34 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
   
   - Commit and push: `git add . && git commit -m "feat: implement Supabase Realtime integration" && git push`
 
+- [ ] 22.5. Real-time UI Integration
+  - [ ] 22.5.1 Connect UI components to Supabase Realtime
+    - Update ForecastedEvents to subscribe to event changes
+    - Update SocialFeed to receive real-time social data
+    - Update CausalChart to reflect real-time event updates
+    - Update ChatPanel to receive real-time AI responses
+    - _Requirements: 13.1, 13.2, 13.4_
+
+  - [ ] 22.5.2 Implement optimistic updates
+    - Add optimistic UI updates for user interactions
+    - Handle rollback on server errors
+    - Show loading states during updates
+    - _Requirements: 13.5_
+
+  - [ ] 22.5.3 Add real-time connection status
+    - Update DashboardHeader with connection indicator
+    - Show offline/online status
+    - Handle reconnection gracefully
+    - _Requirements: 13.4_
+
+  - [ ] 22.5.4 Implement real-time event propagation
+    - Ensure auto-generated events appear across all panels
+    - Update Central Panel, Left Panel, and AI chat context
+    - Maintain consistency across UI components
+    - _Requirements: 5.23, 13.1, 13.2_
+
+  - Commit and push: `git add . && git commit -m "feat: integrate real-time updates across all UI components" && git push`
+
 - [ ] 23. HTML to JSX component migration
   - [ ] 23.1 Convert existing HTML template to JSX
     - Parse index.html and convert to JSX syntax
@@ -693,6 +958,52 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - _Requirements: 2.6_
   
   - Commit and push: `git add . && git commit -m "feat: wire all panels together and implement global state" && git push`
+
+- [ ] 26.5. Comprehensive State Management Integration
+  - [ ] 26.5.1 Implement advanced Zustand store features
+    - Add state persistence with localStorage
+    - Implement state hydration and dehydration
+    - Add state middleware for logging and debugging
+    - Create state selectors for performance optimization
+    - _Requirements: 11.4, 13.5_
+
+  - [ ] 26.5.2 Create comprehensive mock data system
+    - Expand lib/mockData.ts with realistic datasets
+    - Add time-series data for financial metrics
+    - Create dynamic event generation system
+    - Add realistic social sentiment data streams
+    - Implement mock API responses with delays
+    - _Requirements: 1.1, 1.2, 1.3, 5.8, 8.2_
+
+  - [ ] 26.5.3 Implement data flow orchestration
+    - Create lib/dataFlow.ts for coordinating updates
+    - Implement event propagation across all panels
+    - Add data validation and error handling
+    - Create update batching for performance
+    - _Requirements: 5.23, 13.1, 13.2_
+
+  - [ ] 26.5.4 Add advanced UI interactions
+    - Implement event click flow between panels
+    - Add drag-and-drop for event organization
+    - Create advanced filtering and search
+    - Add keyboard shortcuts for power users
+    - _Requirements: 2.6, 3.4, 3.5_
+
+  - [ ] 26.5.5 Implement panel communication system
+    - Create event bus for inter-panel communication
+    - Add panel state synchronization
+    - Implement cross-panel data sharing
+    - Add panel-specific loading states
+    - _Requirements: 11.1, 11.2_
+
+  - [ ] 26.5.6 Create comprehensive error handling
+    - Add error boundaries for each panel
+    - Implement graceful degradation
+    - Add user-friendly error messages
+    - Create error recovery mechanisms
+    - _Requirements: 13.4, 13.5_
+
+  - Commit and push: `git add . && git commit -m "feat: implement comprehensive state management and data flow" && git push`
 
 - [ ] 27. Error handling and edge cases
   - [ ] 27.1 Implement frontend error boundaries
@@ -801,7 +1112,7 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
 - All tasks are required for comprehensive coverage from the start
 - Each task references specific requirements for traceability
 - Checkpoints ensure incremental validation
-- Property tests validate universal correctness properties (35 properties total)
+- Property tests validate universal correctness properties (40 properties total)
 - Unit tests validate specific examples and edge cases
 - The system uses Next.js (latest) with TypeScript for frontend
 - UI components use Shadcn/ui with TailwindCSS
@@ -810,4 +1121,8 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
 - All panels are resizable with persistent preferences
 - Real-time updates via Supabase Realtime
 - Financial Analysis Panel automatically generates events from anomalies
+- N8N AI agents handle chat interactions, financial analysis, and social sentiment processing
+- Zustand provides global state management with persistence
+- Mock data system provides realistic testing environment
 - Minimum 100 iterations per property test for thorough validation
+- UI components are fully integrated with state management and real-time updates

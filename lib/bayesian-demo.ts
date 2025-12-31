@@ -158,7 +158,7 @@ function runBayesianDemo() {
   console.log('📊 SCENARIO 1: Q4 Earnings Beat Probability Updates')
   console.log('---------------------------------------------------')
   
-  let currentEvent = { ...mockEvents.earningsBeat }
+  let currentEvent: Event = { ...mockEvents.earningsBeat }
   console.log(`Initial Event: ${currentEvent.title}`)
   console.log(`Initial Probability: ${currentEvent.probability}%`)
   console.log(`Expected Impact: +${currentEvent.impact.stockPrice?.magnitude}% stock price\n`)
