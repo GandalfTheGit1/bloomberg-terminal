@@ -37,25 +37,34 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
   
   - Commit and push: `git add . && git commit -m "feat: add core data models and property tests" && git push`
 
-- [-] 3. Bayesian update engine
-  - [-] 3.1 Implement Bayesian probability update function
+- [x] 3. Bayesian update engine and UI component parsing
+  - [x] 3.1 Implement Bayesian probability update function
     - Create lib/bayesian.ts with updateProbability function
     - Implement P(H|E) = P(E|H) × P(H) / P(E)
     - Handle edge cases (zero probabilities, invalid inputs)
     - Return both prior and posterior probabilities
     - _Requirements: 1.4, 9.6_
 
-  - [ ] 3.2 Write property test for Bayesian update correctness
+  - [x] 3.2 Write property test for Bayesian update correctness
     - **Property 3: Bayesian Update Correctness**
     - **Validates: Requirements 1.4**
 
-  - [ ] 3.3 Write unit tests for edge cases
+  - [x] 3.3 Write unit tests for edge cases
     - Test zero prior probability
     - Test likelihood of 1.0
     - Test invalid inputs (negative probabilities)
     - _Requirements: 1.4_
+
+  - [-] 3.4 Parse and integrate causal terminal dashboard UI components
+    - Extract and adapt components from v0-causal-terminal-dashboard/
+    - Migrate DashboardHeader, ForecastedEvents, SocialFeed, CausalChart, ChatPanel, IndustryLookback components
+    - Convert to match project structure and design system (Shadcn/ui + TailwindCSS)
+    - Integrate resizable panel layout from v0 dashboard
+    - Adapt color scheme and styling to match AI Financial Terminal design tokens
+    - Update component imports and dependencies
+    - _Requirements: 2.2, 2.7, 3.1, 4.1, 6.1, 7.1, 11.1_
   
-  - Commit and push: `git add . && git commit -m "feat: implement Bayesian update engine with tests" && git push`
+  - Commit and push: `git add . && git commit -m "feat: implement Bayesian update engine with tests and parse causal terminal UI" && git push`
 
 - [ ] 4. Expected Value calculation
   - [ ] 4.1 Implement Expected Value calculation function

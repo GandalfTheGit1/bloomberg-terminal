@@ -40,6 +40,9 @@
   --color-bullish: var(--bullish);
   --color-bearish: var(--bearish);
   --color-neutral: var(--neutral);
+  --color-terminal-bg: var(--terminal-bg);
+  --color-terminal-panel: var(--terminal-panel);
+  --color-terminal-border: var(--terminal-border);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -85,6 +88,9 @@
   --bullish: oklch(0.6 0.15 145);
   --bearish: oklch(0.55 0.22 25);
   --neutral: oklch(0.7 0.15 85);
+  --terminal-bg: oklch(0.11 0.01 250);
+  --terminal-panel: oklch(0.13 0.01 250);
+  --terminal-border: oklch(0.25 0.01 250);
 }
 
 .dark {
@@ -122,6 +128,9 @@
   --bullish: oklch(0.65 0.18 145);
   --bearish: oklch(0.6 0.25 25);
   --neutral: oklch(0.75 0.18 85);
+  --terminal-bg: oklch(0.11 0.01 250);
+  --terminal-panel: oklch(0.13 0.01 250);
+  --terminal-border: oklch(0.25 0.01 250);
 }
 
 @layer base {
@@ -131,4 +140,12 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Grid pattern for chart background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
