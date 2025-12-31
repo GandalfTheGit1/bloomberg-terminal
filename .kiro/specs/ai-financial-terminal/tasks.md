@@ -126,14 +126,14 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
 
   - Commit and push: `git add . && git commit -m "feat: integrate UI components with state management and mock data" && git push`
 
-- [ ] 4. Expected Value calculation
-  - [ ] 4.1 Implement Expected Value calculation function
+- [-] 4. Expected Value calculation
+  - [x] 4.1 Implement Expected Value calculation function
     - Create lib/calculations.ts with calculateExpectedValue function
     - Implement EV = probability × impact
     - Handle multiple impact types (revenue, margin, marketCap, stockPrice)
     - _Requirements: 1.3, 9.2_
 
-  - [ ] 4.2 Write property test for EV calculation
+  - [x] 4.2 Write property test for EV calculation
     - **Property 2: Expected Value Calculation**
     - **Validates: Requirements 1.3, 9.2**
   
