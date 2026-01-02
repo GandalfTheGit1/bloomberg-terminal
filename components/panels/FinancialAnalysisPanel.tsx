@@ -1,13 +1,17 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, Info, Zap } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { FinancialMetrics, IndustryThresholds } from '@/types/models';
+import { FinancialMetrics, IndustryThresholds, Event } from '@/types/models';
+import { createN8NClient, N8NError } from '@/lib/n8nClient';
+
+// Initialize n8n client
+const n8nClient = createN8NClient(true); // Set to false in production
 
 // Trend indicator component
 interface TrendIndicatorProps {
@@ -114,7 +118,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         value={metrics.cashRunwayMonths}
         unit=" months"
         thresholds={thresholds.cashRunwayMonths}
-        tooltip="Months of cash remaining at current burn rate. Critical for survival."
+        tooltip="Months of cash remaining at current burn rate. Critical for survival. Click to analyze for potential events."
         onClick={() => onMetricClick('cashRunwayMonths')}
       />
       <MetricCard
@@ -123,7 +127,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         unit="x"
         thresholds={thresholds.netDebtToEBITDA}
         isInverted={true}
-        tooltip="Debt burden relative to earnings. Lower is better for financial health."
+        tooltip="Debt burden relative to earnings. Lower is better for financial health. Click to analyze for potential events."
         onClick={() => onMetricClick('netDebtToEBITDA')}
       />
       <MetricCard
@@ -131,7 +135,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         value={metrics.freeCashFlowMargin}
         unit="%"
         thresholds={thresholds.freeCashFlowMargin}
-        tooltip="Free cash flow as percentage of revenue. Measures cash generation efficiency."
+        tooltip="Free cash flow as percentage of revenue. Measures cash generation efficiency. Click to analyze for potential events."
         onClick={() => onMetricClick('freeCashFlowMargin')}
       />
       <MetricCard
@@ -139,7 +143,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         value={metrics.grossMargin}
         unit="%"
         thresholds={thresholds.grossMargin}
-        tooltip="Revenue minus cost of goods sold. Indicates pricing power and efficiency."
+        tooltip="Revenue minus cost of goods sold. Indicates pricing power and efficiency. Click to analyze for potential events."
         onClick={() => onMetricClick('grossMargin')}
       />
       <MetricCard
@@ -148,7 +152,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         unit="%"
         thresholds={thresholds.inventoryGrowthVsRevenue}
         isInverted={true}
-        tooltip="Inventory growth relative to revenue growth. High values may indicate demand issues."
+        tooltip="Inventory growth relative to revenue growth. High values may indicate demand issues. Click to analyze for potential events."
         onClick={() => onMetricClick('inventoryGrowthVsRevenue')}
       />
       <MetricCard
@@ -156,7 +160,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         value={metrics.capexToRevenue}
         unit="%"
         thresholds={thresholds.capexToRevenue}
-        tooltip="Capital expenditure as percentage of revenue. Indicates investment in growth."
+        tooltip="Capital expenditure as percentage of revenue. Indicates investment in growth. Click to analyze for potential events."
         onClick={() => onMetricClick('capexToRevenue')}
       />
       <MetricCard
@@ -164,7 +168,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         value={metrics.roicVsWACC}
         unit="%"
         thresholds={thresholds.roicVsWACC}
-        tooltip="Return on invested capital vs weighted average cost of capital. Measures value creation."
+        tooltip="Return on invested capital vs weighted average cost of capital. Measures value creation. Click to analyze for potential events."
         onClick={() => onMetricClick('roicVsWACC')}
       />
       <MetricCard
@@ -173,7 +177,7 @@ const FinancialSnapshot: React.FC<FinancialSnapshotProps> = ({ metrics, threshol
         unit="%"
         thresholds={thresholds.sbcPercentRevenue}
         isInverted={true}
-        tooltip="Stock-based compensation as percentage of revenue. High values indicate dilution risk."
+        tooltip="Stock-based compensation as percentage of revenue. High values indicate dilution risk. Click to analyze for potential events."
         onClick={() => onMetricClick('sbcPercentRevenue')}
       />
     </div>
@@ -337,21 +341,21 @@ const EarningsQuality: React.FC<EarningsQualityProps> = ({ metrics, onMetricClic
           title="Accruals Ratio"
           value={metrics.accrualsRatio}
           unit="%"
-          tooltip="High accruals may indicate earnings manipulation. Lower is generally better."
+          tooltip="High accruals may indicate earnings manipulation. Lower is generally better. Click to analyze for potential events."
           onClick={() => onMetricClick('accrualsRatio')}
         />
         <MetricCard
           title="One-off Expenses Frequency"
           value={metrics.oneOffExpensesFrequency}
           unit="/yr"
-          tooltip="Frequency of one-time charges. High frequency suggests recurring 'non-recurring' items."
+          tooltip="Frequency of one-time charges. High frequency suggests recurring 'non-recurring' items. Click to analyze for potential events."
           onClick={() => onMetricClick('oneOffExpensesFrequency')}
         />
         <MetricCard
           title="Capitalized Costs Trend"
           value={metrics.capitalizedCostsTrend}
           unit="%"
-          tooltip="Trend in capitalizing costs vs expensing. Increasing trend may inflate earnings."
+          tooltip="Trend in capitalizing costs vs expensing. Increasing trend may inflate earnings. Click to analyze for potential events."
           onClick={() => onMetricClick('capitalizedCostsTrend')}
         />
       </div>
@@ -373,14 +377,14 @@ const CycleDemand: React.FC<CycleDemandProps> = ({ metrics, onMetricClick }) => 
           title="Inventory Days (DIO)"
           value={metrics.inventoryDays}
           unit=" days"
-          tooltip="Days of inventory on hand. Industry-specific, but trends matter more than absolute values."
+          tooltip="Days of inventory on hand. Industry-specific, but trends matter more than absolute values. Click to analyze for potential events."
           onClick={() => onMetricClick('inventoryDays')}
         />
         <MetricCard
           title="Backlog/Book-to-Bill"
           value={metrics.backlogBookToBill}
           unit="x"
-          tooltip="Ratio of new orders to shipments. >1.0 indicates growing demand."
+          tooltip="Ratio of new orders to shipments. >1.0 indicates growing demand. Click to analyze for potential events."
           onClick={() => onMetricClick('backlogBookToBill')}
         />
       </div>
@@ -416,7 +420,7 @@ const CycleDemand: React.FC<CycleDemandProps> = ({ metrics, onMetricClick }) => 
           title="Customer Concentration"
           value={metrics.customerConcentration}
           unit="%"
-          tooltip="Percentage of revenue from top 5 customers. High concentration increases risk."
+          tooltip="Percentage of revenue from top 5 customers. High concentration increases risk. Click to analyze for potential events."
           onClick={() => onMetricClick('customerConcentration')}
         />
       </div>
@@ -432,12 +436,19 @@ interface FinancialAnalysisPanelProps {
 const FinancialAnalysisPanel: React.FC<FinancialAnalysisPanelProps> = ({ className = "" }) => {
   const { 
     financialMetrics, 
-    getSelectedIndustry, 
+    getSelectedIndustry,
+    getSelectedCompany,
     addEvent,
-    addNotification 
+    addNotification,
+    setLoading
   } = useAppStore();
   
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [lastAnalysisTime, setLastAnalysisTime] = useState<Date | null>(null);
+  const [generatedEventsCount, setGeneratedEventsCount] = useState(0);
+  
   const selectedIndustry = getSelectedIndustry();
+  const selectedCompany = getSelectedCompany();
   
   // Mock industry thresholds if not available
   const defaultThresholds: IndustryThresholds = {
@@ -453,7 +464,166 @@ const FinancialAnalysisPanel: React.FC<FinancialAnalysisPanelProps> = ({ classNa
   
   const thresholds = selectedIndustry?.thresholds || defaultThresholds;
   
-  const handleMetricClick = (metric: string) => {
+  // Enhanced metric click handler with n8n integration
+  const handleMetricClick = useCallback(async (metric: string) => {
+    if (!financialMetrics || !selectedCompany) {
+      addNotification({
+        type: 'warning',
+        title: 'No Data Available',
+        message: 'Please select a company with financial data first.'
+      });
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Trigger n8n financial analysis for specific metric
+      const analysisResult = await n8nClient.analyzeFinancialMetrics({
+        companyId: selectedCompany.id,
+        metrics: financialMetrics,
+        industryThresholds: thresholds,
+        analysisType: 'threshold_check'
+      });
+      
+      // Process generated events
+      if (analysisResult.generatedEvents && analysisResult.generatedEvents.length > 0) {
+        let eventsAdded = 0;
+        
+        for (const eventData of analysisResult.generatedEvents) {
+          // Convert n8n event format to our Event interface
+          const event: Event = {
+            ...eventData,
+            // Ensure all required fields are present
+            updateHistory: eventData.updateHistory || [],
+            createdAt: new Date(eventData.createdAt),
+            updatedAt: new Date(eventData.updatedAt),
+            timingWindow: {
+              start: new Date(eventData.timingWindow.start),
+              end: new Date(eventData.timingWindow.end),
+              expectedDate: new Date(eventData.timingWindow.expectedDate)
+            }
+          };
+          
+          addEvent(event);
+          eventsAdded++;
+        }
+        
+        setGeneratedEventsCount(prev => prev + eventsAdded);
+        
+        addNotification({
+          type: 'success',
+          title: 'Events Generated',
+          message: `Generated ${eventsAdded} new events from ${metric} analysis`
+        });
+      }
+      
+      // Show analysis insights
+      if (analysisResult.insights && analysisResult.insights.length > 0) {
+        addNotification({
+          type: 'info',
+          title: `${metric} Analysis`,
+          message: analysisResult.insights[0] // Show first insight
+        });
+      }
+      
+      setLastAnalysisTime(new Date());
+      
+    } catch (error) {
+      console.error('Financial analysis error:', error);
+      
+      let errorMessage = 'Failed to analyze financial metrics. Please try again.';
+      
+      if (error instanceof N8NError) {
+        if (error.statusCode === 408) {
+          errorMessage = 'Analysis timed out. The financial data may be too complex.';
+        } else if (error.statusCode && error.statusCode >= 500) {
+          errorMessage = 'Financial analysis service is temporarily unavailable.';
+        }
+      }
+      
+      addNotification({
+        type: 'error',
+        title: 'Analysis Failed',
+        message: errorMessage
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [financialMetrics, selectedCompany, thresholds, addEvent, addNotification]);
+  
+  // Automatic analysis when financial metrics change
+  useEffect(() => {
+    if (financialMetrics && selectedCompany && !isAnalyzing) {
+      // Debounce automatic analysis
+      const timeoutId = setTimeout(() => {
+        triggerAutomaticAnalysis();
+      }, 2000); // 2 second delay
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [financialMetrics, selectedCompany]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Trigger automatic analysis of all metrics
+  const triggerAutomaticAnalysis = useCallback(async () => {
+    if (!financialMetrics || !selectedCompany || isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    setLoading(true);
+    
+    try {
+      // Run comprehensive analysis via n8n
+      const analysisResult = await n8nClient.detectAnomalies(
+        selectedCompany.id,
+        financialMetrics,
+        thresholds
+      );
+      
+      // Process all generated events
+      if (analysisResult.generatedEvents && analysisResult.generatedEvents.length > 0) {
+        let eventsAdded = 0;
+        
+        for (const eventData of analysisResult.generatedEvents) {
+          const event: Event = {
+            ...eventData,
+            updateHistory: eventData.updateHistory || [],
+            createdAt: new Date(eventData.createdAt),
+            updatedAt: new Date(eventData.updatedAt),
+            timingWindow: {
+              start: new Date(eventData.timingWindow.start),
+              end: new Date(eventData.timingWindow.end),
+              expectedDate: new Date(eventData.timingWindow.expectedDate)
+            }
+          };
+          
+          addEvent(event);
+          eventsAdded++;
+        }
+        
+        setGeneratedEventsCount(prev => prev + eventsAdded);
+        
+        if (eventsAdded > 0) {
+          addNotification({
+            type: 'info',
+            title: 'Automatic Analysis Complete',
+            message: `Generated ${eventsAdded} events from financial anomaly detection`
+          });
+        }
+      }
+      
+      setLastAnalysisTime(new Date());
+      
+    } catch (error) {
+      console.error('Automatic analysis error:', error);
+      // Don't show error notifications for automatic analysis to avoid spam
+    } finally {
+      setIsAnalyzing(false);
+      setLoading(false);
+    }
+  }, [financialMetrics, selectedCompany, thresholds, isAnalyzing, addEvent, addNotification, setLoading]);
+  
+  const handleMetricClickLegacy = (metric: string) => {
+    // Legacy handler for simple notifications
     addNotification({
       type: 'info',
       title: 'Metric Details',
@@ -477,7 +647,50 @@ const FinancialAnalysisPanel: React.FC<FinancialAnalysisPanelProps> = ({ classNa
   return (
     <Card className={`${className}`}>
       <CardHeader>
-        <CardTitle className="text-xl font-bold">Financial Analysis</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-bold">Financial Analysis</CardTitle>
+          <div className="flex items-center gap-3">
+            {/* Analysis Status */}
+            <div className="flex items-center gap-2">
+              {isAnalyzing && (
+                <>
+                  <Zap className="h-4 w-4 text-primary animate-pulse" />
+                  <span className="text-sm text-muted-foreground">Analyzing...</span>
+                </>
+              )}
+              {lastAnalysisTime && !isAnalyzing && (
+                <span className="text-xs text-muted-foreground">
+                  Last: {lastAnalysisTime.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+            
+            {/* Generated Events Counter */}
+            {generatedEventsCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {generatedEventsCount} events generated
+              </Badge>
+            )}
+            
+            {/* Manual Analysis Trigger */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={triggerAutomaticAnalysis}
+                    disabled={isAnalyzing || !financialMetrics || !selectedCompany}
+                    className="p-2 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Zap className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Run financial analysis and generate events</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="snapshot" className="w-full">

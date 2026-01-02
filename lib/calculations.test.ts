@@ -245,7 +245,7 @@ describe('Expected Value Calculation Property Tests', () => {
         
         // If confidence is 0%, adjusted should be 0
         if (input.impact.confidence === 0) {
-          expect(adjustedResult.expectedValue).toBe(0)
+          expect(Math.abs(adjustedResult.expectedValue)).toBe(0)
         }
         
         return true

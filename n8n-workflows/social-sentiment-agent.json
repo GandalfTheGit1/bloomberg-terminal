@@ -1,0 +1,226 @@
+{
+  "name": "Social Sentiment Analysis Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "social-sentiment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Social Data Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "social-sentiment-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate social media data\nconst body = $input.first().json.body;\n\nif (!body || !body.posts || !Array.isArray(body.posts)) {\n  throw new Error('Missing required posts array');\n}\n\nconst socialData = {\n  posts: body.posts,\n  symbol: body.symbol || 'UNKNOWN',\n  source: body.source || 'mixed', // 'twitter', 'reddit', 'mixed'\n  timestamp: new Date().toISOString(),\n  batchId: `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`\n};\n\n// Validate post structure\nconst validPosts = socialData.posts.filter(post => {\n  return post && \n         typeof post.content === 'string' && \n         post.content.trim().length > 0 &&\n         post.author &&\n         post.timestamp;\n});\n\nif (validPosts.length === 0) {\n  throw new Error('No valid posts found in batch');\n}\n\nsocialData.posts = validPosts;\nsocialData.validPostCount = validPosts.length;\n\nreturn socialData;"
+      },
+      "id": "data-validator",
+      "name": "Validate Social Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify sentiment for each post\nconst data = $input.first().json;\nconst posts = data.posts;\nconst classifiedPosts = [];\n\n// Sentiment classification logic\nfunction classifySentiment(content) {\n  const text = content.toLowerCase();\n  \n  // Bullish indicators\n  const bullishKeywords = [\n    'buy', 'bull', 'bullish', 'moon', 'rocket', 'pump', 'up', 'rise', 'gain',\n    'profit', 'strong', 'growth', 'positive', 'good', 'great', 'excellent',\n    'beat', 'exceed', 'outperform', 'upgrade', 'target', 'rally'\n  ];\n  \n  // Bearish indicators\n  const bearishKeywords = [\n    'sell', 'bear', 'bearish', 'crash', 'dump', 'down', 'fall', 'drop',\n    'loss', 'weak', 'decline', 'negative', 'bad', 'terrible', 'awful',\n    'miss', 'underperform', 'downgrade', 'concern', 'risk', 'warning'\n  ];\n  \n  let bullishScore = 0;\n  let bearishScore = 0;\n  \n  // Count keyword matches\n  bullishKeywords.forEach(keyword => {\n    const matches = (text.match(new RegExp(keyword, 'g')) || []).length;\n    bullishScore += matches;\n  });\n  \n  bearishKeywords.forEach(keyword => {\n    const matches = (text.match(new RegExp(keyword, 'g')) || []).length;\n    bearishScore += matches;\n  });\n  \n  // Determine sentiment\n  if (bullishScore > bearishScore) {\n    return {\n      sentiment: 'bullish',\n      confidence: Math.min(0.9, 0.5 + (bullishScore - bearishScore) * 0.1),\n      bullishScore,\n      bearishScore\n    };\n  } else if (bearishScore > bullishScore) {\n    return {\n      sentiment: 'bearish', \n      confidence: Math.min(0.9, 0.5 + (bearishScore - bullishScore) * 0.1),\n      bullishScore,\n      bearishScore\n    };\n  } else {\n    return {\n      sentiment: 'neutral',\n      confidence: 0.6,\n      bullishScore,\n      bearishScore\n    };\n  }\n}\n\n// Process each post\nfor (const post of posts) {\n  const sentimentResult = classifySentiment(post.content);\n  \n  const classifiedPost = {\n    ...post,\n    sentiment: sentimentResult.sentiment,\n    sentimentConfidence: sentimentResult.confidence,\n    sentimentScores: {\n      bullish: sentimentResult.bullishScore,\n      bearish: sentimentResult.bearishScore\n    },\n    processedAt: new Date().toISOString()\n  };\n  \n  classifiedPosts.push(classifiedPost);\n}\n\nreturn {\n  ...data,\n  classifiedPosts: classifiedPosts,\n  sentimentClassificationComplete: true\n};"
+      },
+      "id": "sentiment-classifier",
+      "name": "Classify Post Sentiment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Identify post types (opinion vs event detection)\nconst data = $input.first().json;\nconst posts = data.classifiedPosts;\nconst typedPosts = [];\n\n// Event detection keywords\nconst eventKeywords = [\n  'announcement', 'announce', 'breaking', 'news', 'report', 'earnings',\n  'merger', 'acquisition', 'partnership', 'deal', 'contract', 'launch',\n  'release', 'filing', 'sec', 'insider', 'ceo', 'cfo', 'management',\n  'guidance', 'forecast', 'outlook', 'warning', 'alert', 'rumor'\n];\n\nfunction identifyPostType(content) {\n  const text = content.toLowerCase();\n  let eventScore = 0;\n  \n  eventKeywords.forEach(keyword => {\n    if (text.includes(keyword)) {\n      eventScore += 1;\n    }\n  });\n  \n  // Check for specific patterns that indicate event detection\n  const eventPatterns = [\n    /just announced/i,\n    /breaking:/i,\n    /confirmed/i,\n    /sources say/i,\n    /according to/i,\n    /leaked/i,\n    /insider info/i\n  ];\n  \n  eventPatterns.forEach(pattern => {\n    if (pattern.test(content)) {\n      eventScore += 2;\n    }\n  });\n  \n  return {\n    isEventDetection: eventScore >= 2,\n    eventScore: eventScore,\n    type: eventScore >= 2 ? 'event_detection' : 'opinion'\n  };\n}\n\n// Process each post\nfor (const post of posts) {\n  const typeResult = identifyPostType(post.content);\n  \n  const typedPost = {\n    ...post,\n    isEventDetection: typeResult.isEventDetection,\n    postType: typeResult.type,\n    eventScore: typeResult.eventScore\n  };\n  \n  typedPosts.push(typedPost);\n}\n\nreturn {\n  ...data,\n  typedPosts: typedPosts,\n  postTypeClassificationComplete: true\n};"
+      },
+      "id": "post-type-classifier",
+      "name": "Classify Post Types",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Identify executive and employee posts\nconst data = $input.first().json;\nconst posts = data.typedPosts;\nconst identifiedPosts = [];\n\n// Executive/employee identification patterns\nconst executiveTitles = [\n  'ceo', 'cfo', 'cto', 'coo', 'president', 'founder', 'co-founder',\n  'chairman', 'director', 'vp', 'vice president', 'head of', 'chief'\n];\n\nconst employeeIndicators = [\n  'employee', 'work at', 'works at', 'team member', 'staff',\n  'insider', 'internal', 'company email', '@company.com'\n];\n\nfunction identifyAuthorType(author, content, bio = '') {\n  const authorLower = author.toLowerCase();\n  const contentLower = content.toLowerCase();\n  const bioLower = bio.toLowerCase();\n  const fullText = `${authorLower} ${contentLower} ${bioLower}`;\n  \n  // Check for executive titles\n  for (const title of executiveTitles) {\n    if (fullText.includes(title)) {\n      return {\n        authorType: 'executive',\n        confidence: 0.8,\n        indicator: title\n      };\n    }\n  }\n  \n  // Check for employee indicators\n  for (const indicator of employeeIndicators) {\n    if (fullText.includes(indicator)) {\n      return {\n        authorType: 'employee',\n        confidence: 0.7,\n        indicator: indicator\n      };\n    }\n  }\n  \n  // Check for analyst indicators\n  if (fullText.includes('analyst') || fullText.includes('research') || \n      fullText.includes('investment') || fullText.includes('fund')) {\n    return {\n      authorType: 'analyst',\n      confidence: 0.6,\n      indicator: 'analyst_keywords'\n    };\n  }\n  \n  // Default to retail\n  return {\n    authorType: 'retail',\n    confidence: 0.9,\n    indicator: 'default'\n  };\n}\n\n// Calculate influence score based on author type and engagement\nfunction calculateInfluenceScore(authorType, followers = 0, likes = 0, retweets = 0) {\n  let baseScore = 1;\n  \n  switch (authorType) {\n    case 'executive':\n      baseScore = 10;\n      break;\n    case 'employee':\n      baseScore = 5;\n      break;\n    case 'analyst':\n      baseScore = 3;\n      break;\n    case 'retail':\n    default:\n      baseScore = 1;\n      break;\n  }\n  \n  // Engagement multiplier (simplified)\n  const engagementScore = Math.log10(Math.max(1, followers + likes * 2 + retweets * 3));\n  \n  return Math.min(100, baseScore * engagementScore);\n}\n\n// Process each post\nfor (const post of posts) {\n  const authorResult = identifyAuthorType(\n    post.author, \n    post.content, \n    post.authorBio || ''\n  );\n  \n  const influenceScore = calculateInfluenceScore(\n    authorResult.authorType,\n    post.followers || 0,\n    post.likes || 0,\n    post.retweets || 0\n  );\n  \n  const identifiedPost = {\n    ...post,\n    authorType: authorResult.authorType,\n    authorTypeConfidence: authorResult.confidence,\n    authorTypeIndicator: authorResult.indicator,\n    influenceScore: influenceScore\n  };\n  \n  identifiedPosts.push(identifiedPost);\n}\n\nreturn {\n  ...data,\n  identifiedPosts: identifiedPosts,\n  authorIdentificationComplete: true\n};"
+      },
+      "id": "author-identifier",
+      "name": "Identify Executives & Employees",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate sentiment data and generate final results\nconst sentimentData = $('Classify Post Sentiment').first().json;\nconst typeData = $('Classify Post Types').first().json;\nconst authorData = $('Identify Executives & Employees').first().json;\n\nconst posts = authorData.identifiedPosts;\n\n// Calculate aggregated metrics\nlet bullishCount = 0;\nlet bearishCount = 0;\nlet neutralCount = 0;\nlet totalInfluenceScore = 0;\nlet uniqueAuthors = new Set();\nlet executivePosts = [];\nlet eventDetectionPosts = [];\n\nfor (const post of posts) {\n  // Count sentiment\n  switch (post.sentiment) {\n    case 'bullish':\n      bullishCount++;\n      break;\n    case 'bearish':\n      bearishCount++;\n      break;\n    case 'neutral':\n    default:\n      neutralCount++;\n      break;\n  }\n  \n  // Track unique authors\n  uniqueAuthors.add(post.author);\n  \n  // Accumulate influence score\n  totalInfluenceScore += post.influenceScore || 0;\n  \n  // Collect executive posts\n  if (post.authorType === 'executive' || post.authorType === 'employee') {\n    executivePosts.push(post);\n  }\n  \n  // Collect event detection posts\n  if (post.isEventDetection) {\n    eventDetectionPosts.push(post);\n  }\n}\n\n// Calculate influence-weighted sentiment score (-100 to +100)\nlet weightedSentimentScore = 0;\nlet totalWeight = 0;\n\nfor (const post of posts) {\n  const weight = post.influenceScore || 1;\n  let sentimentValue = 0;\n  \n  switch (post.sentiment) {\n    case 'bullish':\n      sentimentValue = post.sentimentConfidence || 0.5;\n      break;\n    case 'bearish':\n      sentimentValue = -(post.sentimentConfidence || 0.5);\n      break;\n    case 'neutral':\n    default:\n      sentimentValue = 0;\n      break;\n  }\n  \n  weightedSentimentScore += sentimentValue * weight;\n  totalWeight += weight;\n}\n\nconst finalInfluenceWeightedScore = totalWeight > 0 ? \n  Math.round((weightedSentimentScore / totalWeight) * 100) : 0;\n\n// Generate potential events from high-confidence event detection posts\nconst potentialEvents = [];\n\nfor (const post of eventDetectionPosts) {\n  if (post.eventScore >= 3 && post.influenceScore >= 5) {\n    const event = {\n      id: `social_event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n      type: 'company',\n      title: `Social Event Detection: ${post.content.substring(0, 50)}...`,\n      description: `Event detected from social media: ${post.content}`,\n      probability: Math.min(85, 40 + post.eventScore * 5 + post.influenceScore),\n      priorProbability: 30,\n      timingWindow: {\n        start: new Date().toISOString(),\n        end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days\n        expectedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days\n      },\n      impact: {\n        stockPrice: {\n          direction: post.sentiment === 'bullish' ? 'bullish' : post.sentiment === 'bearish' ? 'bearish' : 'neutral',\n          magnitude: post.sentiment === 'neutral' ? 0 : (post.sentimentConfidence * 10),\n          confidence: Math.min(90, post.sentimentConfidence * 100)\n        }\n      },\n      confidence: Math.min(90, post.eventScore * 10 + post.influenceScore),\n      sources: [{\n        type: 'social',\n        url: post.url || '',\n        timestamp: post.timestamp,\n        reliability: post.influenceScore / 100\n      }],\n      drivers: [`Social media detection from ${post.authorType}: ${post.author}`],\n      createdAt: new Date().toISOString(),\n      updatedAt: new Date().toISOString(),\n      updateHistory: [],\n      socialMetadata: {\n        originalPost: post,\n        eventScore: post.eventScore,\n        authorType: post.authorType,\n        influenceScore: post.influenceScore\n      }\n    };\n    \n    // Calculate expected value\n    event.expectedValue = (event.probability / 100) * (event.impact.stockPrice?.magnitude || 0);\n    \n    potentialEvents.push(event);\n  }\n}\n\n// Prepare final aggregated result\nconst sentimentAggregate = {\n  symbol: sentimentData.symbol,\n  batchId: sentimentData.batchId,\n  timestamp: new Date().toISOString(),\n  timeRange: {\n    start: sentimentData.timestamp,\n    end: new Date().toISOString()\n  },\n  summary: {\n    totalPosts: posts.length,\n    bullishCount: bullishCount,\n    bearishCount: bearishCount,\n    neutralCount: neutralCount,\n    uniqueAuthors: uniqueAuthors.size,\n    executivePostCount: executivePosts.length,\n    eventDetectionCount: eventDetectionPosts.length,\n    potentialEventsGenerated: potentialEvents.length\n  },\n  metrics: {\n    influenceWeightedScore: finalInfluenceWeightedScore, // -100 to +100\n    averageInfluenceScore: totalInfluenceScore / posts.length,\n    sentimentDistribution: {\n      bullish: (bullishCount / posts.length) * 100,\n      bearish: (bearishCount / posts.length) * 100,\n      neutral: (neutralCount / posts.length) * 100\n    }\n  },\n  topPosts: posts\n    .sort((a, b) => (b.influenceScore || 0) - (a.influenceScore || 0))\n    .slice(0, 10),\n  executivePosts: executivePosts,\n  eventDetectionPosts: eventDetectionPosts,\n  potentialEvents: potentialEvents,\n  processingComplete: true,\n  processingTime: Date.now() - new Date(sentimentData.timestamp).getTime()\n};\n\nreturn sentimentAggregate;"
+      },
+      "id": "sentiment-aggregator",
+      "name": "Aggregate Sentiment Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Send Sentiment Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-condition",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "error-handler",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $json.error || 'Social sentiment analysis failed' }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "id": "error-response",
+      "name": "Send Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 700]
+    }
+  ],
+  "connections": {
+    "Social Data Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Social Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Social Data": {
+      "main": [
+        [
+          {
+            "node": "Classify Post Sentiment",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Classify Post Types",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Identify Executives & Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Post Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Sentiment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Post Types": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Sentiment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Executives & Employees": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Sentiment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Sentiment Data": {
+      "main": [
+        [
+          {
+            "node": "Send Sentiment Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Send Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "AI Financial Terminal",
+    "description": "Processes social media data for sentiment classification, post type identification, executive detection, and event generation",
+    "tags": ["social", "sentiment", "twitter", "reddit", "analysis", "events"]
+  },
+  "id": "social-sentiment-agent",
+  "tags": []
+}

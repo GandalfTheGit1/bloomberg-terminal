@@ -1,0 +1,226 @@
+{
+  "name": "Financial Analysis Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "financial-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Financial Data Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "financial-analysis-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate financial metrics data\nconst body = $input.first().json.body;\n\nif (!body || !body.companyId || !body.metrics) {\n  throw new Error('Missing required companyId or metrics fields');\n}\n\nconst financialData = {\n  companyId: body.companyId,\n  metrics: body.metrics,\n  industryThresholds: body.industryThresholds || {},\n  timestamp: new Date().toISOString(),\n  analysisType: body.analysisType || 'full' // 'threshold', 'pattern', 'guidance', 'full'\n};\n\n// Validate required metrics\nconst requiredMetrics = [\n  'cashRunwayMonths', 'netDebtToEBITDA', 'freeCashFlowMargin', 'grossMargin',\n  'inventoryGrowthVsRevenue', 'capexToRevenue', 'roicVsWACC', 'sbcPercentRevenue'\n];\n\nconst missingMetrics = requiredMetrics.filter(metric => \n  financialData.metrics[metric] === undefined || financialData.metrics[metric] === null\n);\n\nif (missingMetrics.length > 0) {\n  console.warn(`Missing metrics: ${missingMetrics.join(', ')}`);\n}\n\nreturn financialData;"
+      },
+      "id": "data-validator",
+      "name": "Validate Financial Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Threshold crossing detection\nconst data = $input.first().json;\nconst metrics = data.metrics;\nconst thresholds = data.industryThresholds;\nconst detectedAnomalies = [];\n\n// Define default thresholds if not provided\nconst defaultThresholds = {\n  cashRunwayMonths: { green: 24, amber: 12, red: 6 },\n  netDebtToEBITDA: { green: 2, amber: 4, red: 6 },\n  freeCashFlowMargin: { green: 15, amber: 5, red: -5 },\n  grossMargin: { green: 40, amber: 25, red: 15 },\n  inventoryGrowthVsRevenue: { green: 1.1, amber: 1.5, red: 2.0 },\n  capexToRevenue: { green: 5, amber: 10, red: 15 },\n  roicVsWACC: { green: 1.5, amber: 1.0, red: 0.8 },\n  sbcPercentRevenue: { green: 2, amber: 5, red: 10 }\n};\n\nconst activeThresholds = { ...defaultThresholds, ...thresholds };\n\n// Check each metric against thresholds\nfor (const [metricName, value] of Object.entries(metrics)) {\n  if (activeThresholds[metricName] && typeof value === 'number') {\n    const threshold = activeThresholds[metricName];\n    let severity = 'green';\n    let crossed = false;\n    \n    // Determine threshold crossing\n    if (metricName === 'netDebtToEBITDA' || metricName === 'inventoryGrowthVsRevenue' || \n        metricName === 'capexToRevenue' || metricName === 'sbcPercentRevenue') {\n      // Higher is worse\n      if (value >= threshold.red) {\n        severity = 'red';\n        crossed = true;\n      } else if (value >= threshold.amber) {\n        severity = 'amber';\n        crossed = true;\n      }\n    } else if (metricName === 'roicVsWACC') {\n      // Lower is worse\n      if (value <= threshold.red) {\n        severity = 'red';\n        crossed = true;\n      } else if (value <= threshold.amber) {\n        severity = 'amber';\n        crossed = true;\n      }\n    } else {\n      // Standard metrics where lower is worse\n      if (value <= threshold.red) {\n        severity = 'red';\n        crossed = true;\n      } else if (value <= threshold.amber) {\n        severity = 'amber';\n        crossed = true;\n      }\n    }\n    \n    if (crossed) {\n      detectedAnomalies.push({\n        type: 'threshold_crossing',\n        metric: metricName,\n        value: value,\n        threshold: threshold[severity],\n        severity: severity,\n        description: `${metricName} crossed ${severity} threshold: ${value} vs ${threshold[severity]}`,\n        timestamp: new Date().toISOString()\n      });\n    }\n  }\n}\n\nreturn {\n  ...data,\n  thresholdAnomalies: detectedAnomalies,\n  thresholdAnalysisComplete: true\n};"
+      },
+      "id": "threshold-detector",
+      "name": "Detect Threshold Crossings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pattern divergence detection\nconst data = $input.first().json;\nconst metrics = data.metrics;\nconst patternAnomalies = [];\n\n// Simulate historical pattern analysis (in real implementation, this would query historical data)\nconst historicalPatterns = {\n  grossMargin: { mean: 35, stdDev: 5, trend: 'stable' },\n  freeCashFlowMargin: { mean: 12, stdDev: 8, trend: 'improving' },\n  inventoryGrowthVsRevenue: { mean: 1.2, stdDev: 0.3, trend: 'stable' },\n  capexToRevenue: { mean: 7, stdDev: 2, trend: 'declining' }\n};\n\n// Check for pattern divergence (simplified analysis)\nfor (const [metricName, value] of Object.entries(metrics)) {\n  if (historicalPatterns[metricName] && typeof value === 'number') {\n    const pattern = historicalPatterns[metricName];\n    const zScore = Math.abs((value - pattern.mean) / pattern.stdDev);\n    \n    // Flag if more than 2 standard deviations from historical mean\n    if (zScore > 2) {\n      let severity = zScore > 3 ? 'high' : 'medium';\n      \n      patternAnomalies.push({\n        type: 'pattern_divergence',\n        metric: metricName,\n        value: value,\n        historicalMean: pattern.mean,\n        zScore: zScore,\n        severity: severity,\n        description: `${metricName} diverged from historical pattern: ${value} vs mean ${pattern.mean} (${zScore.toFixed(2)} std devs)`,\n        timestamp: new Date().toISOString()\n      });\n    }\n  }\n}\n\nreturn {\n  ...data,\n  patternAnomalies: patternAnomalies,\n  patternAnalysisComplete: true\n};"
+      },
+      "id": "pattern-detector",
+      "name": "Detect Pattern Divergence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guidance conflict detection\nconst data = $input.first().json;\nconst metrics = data.metrics;\nconst guidanceConflicts = [];\n\n// Simulate management guidance (in real implementation, this would come from earnings calls/filings)\nconst managementGuidance = {\n  grossMargin: { guidance: 42, tolerance: 2, source: 'Q3 Earnings Call' },\n  freeCashFlowMargin: { guidance: 18, tolerance: 3, source: 'Annual Guidance' },\n  capexToRevenue: { guidance: 6, tolerance: 1, source: 'Investor Day' }\n};\n\n// Check for conflicts with guidance\nfor (const [metricName, value] of Object.entries(metrics)) {\n  if (managementGuidance[metricName] && typeof value === 'number') {\n    const guidance = managementGuidance[metricName];\n    const deviation = Math.abs(value - guidance.guidance);\n    \n    if (deviation > guidance.tolerance) {\n      let severity = deviation > (guidance.tolerance * 2) ? 'high' : 'medium';\n      \n      guidanceConflicts.push({\n        type: 'guidance_conflict',\n        metric: metricName,\n        value: value,\n        guidance: guidance.guidance,\n        deviation: deviation,\n        tolerance: guidance.tolerance,\n        severity: severity,\n        description: `${metricName} conflicts with management guidance: ${value} vs guided ${guidance.guidance} (${guidance.source})`,\n        timestamp: new Date().toISOString()\n      });\n    }\n  }\n}\n\nreturn {\n  ...data,\n  guidanceConflicts: guidanceConflicts,\n  guidanceAnalysisComplete: true\n};"
+      },
+      "id": "guidance-detector",
+      "name": "Detect Guidance Conflicts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine all anomaly detection results\nconst thresholdData = $('Detect Threshold Crossings').first().json;\nconst patternData = $('Detect Pattern Divergence').first().json;\nconst guidanceData = $('Detect Guidance Conflicts').first().json;\n\n// Combine all anomalies\nconst allAnomalies = [\n  ...(thresholdData.thresholdAnomalies || []),\n  ...(patternData.patternAnomalies || []),\n  ...(guidanceData.guidanceConflicts || [])\n];\n\n// Generate events from high-severity anomalies\nconst generatedEvents = [];\n\nfor (const anomaly of allAnomalies) {\n  if (anomaly.severity === 'high' || anomaly.severity === 'red') {\n    // Generate event with probability, timing, and impact\n    const event = {\n      id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n      type: 'company',\n      title: `${anomaly.metric} Risk Event`,\n      description: anomaly.description,\n      probability: anomaly.severity === 'red' ? 85 : 70, // High probability for severe anomalies\n      priorProbability: 50, // Default prior\n      timingWindow: {\n        start: new Date().toISOString(),\n        end: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days\n        expectedDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days\n      },\n      impact: {\n        revenue: anomaly.metric.includes('revenue') || anomaly.metric.includes('margin') ? {\n          direction: 'bearish',\n          magnitude: anomaly.severity === 'red' ? -15 : -8,\n          confidence: 75\n        } : undefined,\n        stockPrice: {\n          direction: 'bearish',\n          magnitude: anomaly.severity === 'red' ? -12 : -6,\n          confidence: 70\n        }\n      },\n      expectedValue: anomaly.severity === 'red' ? -10.2 : -4.2, // probability × impact\n      confidence: 75,\n      sources: [{\n        type: 'financial',\n        timestamp: new Date().toISOString(),\n        reliability: 0.9\n      }],\n      drivers: [anomaly.description],\n      createdAt: new Date().toISOString(),\n      updatedAt: new Date().toISOString(),\n      updateHistory: [],\n      generatedFrom: {\n        anomalyType: anomaly.type,\n        metric: anomaly.metric,\n        severity: anomaly.severity\n      }\n    };\n    \n    generatedEvents.push(event);\n  }\n}\n\n// Prepare final response\nconst analysisResult = {\n  companyId: thresholdData.companyId,\n  timestamp: new Date().toISOString(),\n  analysisComplete: true,\n  summary: {\n    totalAnomalies: allAnomalies.length,\n    thresholdCrossings: thresholdData.thresholdAnomalies?.length || 0,\n    patternDivergences: patternData.patternAnomalies?.length || 0,\n    guidanceConflicts: guidanceData.guidanceConflicts?.length || 0,\n    eventsGenerated: generatedEvents.length\n  },\n  anomalies: allAnomalies,\n  generatedEvents: generatedEvents,\n  processingTime: Date.now() - new Date(thresholdData.timestamp).getTime()\n};\n\nreturn analysisResult;"
+      },
+      "id": "event-generator",
+      "name": "Generate Events from Anomalies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Send Analysis Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-condition",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "error-handler",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $json.error || 'Financial analysis failed' }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "id": "error-response",
+      "name": "Send Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 700]
+    }
+  ],
+  "connections": {
+    "Financial Data Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Financial Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Financial Data": {
+      "main": [
+        [
+          {
+            "node": "Detect Threshold Crossings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Detect Pattern Divergence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Detect Guidance Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Threshold Crossings": {
+      "main": [
+        [
+          {
+            "node": "Generate Events from Anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Pattern Divergence": {
+      "main": [
+        [
+          {
+            "node": "Generate Events from Anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Guidance Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Generate Events from Anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Events from Anomalies": {
+      "main": [
+        [
+          {
+            "node": "Send Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Send Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "AI Financial Terminal",
+    "description": "Analyzes financial metrics for threshold crossings, pattern divergences, and guidance conflicts, automatically generating events",
+    "tags": ["financial", "analysis", "anomaly", "events", "thresholds"]
+  },
+  "id": "financial-analysis-agent",
+  "tags": []
+}

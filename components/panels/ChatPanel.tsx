@@ -60,6 +60,31 @@ How can I assist you today?`,
     }
   }, [chatContext]); // eslint-disable-line react-hooks/exhaustive-deps
   
+  // Enhanced context injection for n8n
+  const buildEnhancedContext = () => {
+    if (!chatContext) return null;
+    
+    return {
+      ...chatContext,
+      // Add current UI state for better context
+      selectedEventId: selectedEvent?.id,
+      currentTimestamp: new Date().toISOString(),
+      // Add recent financial metrics if available
+      recentMetrics: chatContext.financialMetrics ? {
+        ...chatContext.financialMetrics,
+        lastUpdated: new Date().toISOString()
+      } : undefined,
+      // Add event graph summary
+      eventGraphSummary: chatContext.eventGraph ? {
+        nodeCount: chatContext.eventGraph.nodes.length,
+        edgeCount: chatContext.eventGraph.edges.length,
+        highProbabilityEvents: chatContext.eventGraph.nodes
+          .filter(event => event.probability > 70)
+          .map(event => ({ id: event.id, title: event.title, probability: event.probability }))
+      } : undefined
+    };
+  };
+  
   const handleSend = async () => {
     if (!message.trim() || isLoading) return;
     
@@ -76,14 +101,26 @@ How can I assist you today?`,
     setIsTyping(true);
     
     try {
-      if (!chatContext) {
+      const enhancedContext = buildEnhancedContext();
+      if (!enhancedContext) {
         throw new Error('No company context available. Please select a company first.');
       }
       
+      // Add more detailed conversation history for better context
+      const conversationHistory = chatMessages.slice(-10).map(msg => ({
+        ...msg,
+        // Add metadata for better AI understanding
+        metadata: {
+          hasLinkedEvents: msg.linkedEvents && msg.linkedEvents.length > 0,
+          eventCount: msg.linkedEvents?.length || 0,
+          messageLength: msg.content.length
+        }
+      }));
+      
       const response = await n8nClient.sendChatMessage({
         message: userMessage.content,
-        context: chatContext,
-        conversationHistory: chatMessages.slice(-10), // Last 10 messages for context
+        context: enhancedContext,
+        conversationHistory,
         requestType: 'question'
       });
       
@@ -92,10 +129,25 @@ How can I assist you today?`,
         content: response.response,
         timestamp: new Date(),
         isUser: false,
-        linkedEvents: response.linkedEvents
+        linkedEvents: response.linkedEvents,
+        // Add response metadata
+        metadata: {
+          confidence: response.confidence,
+          sources: response.sources,
+          suggestedActions: response.suggestedActions
+        }
       };
       
       addChatMessage(aiMessage);
+      
+      // Show notification for high-confidence responses with linked events
+      if (response.confidence && response.confidence > 85 && response.linkedEvents?.length > 0) {
+        addNotification({
+          type: 'info',
+          title: 'High Confidence Response',
+          message: `AI identified ${response.linkedEvents.length} related events with ${Math.round(response.confidence)}% confidence`
+        });
+      }
       
     } catch (error) {
       console.error('Chat error:', error);
@@ -131,7 +183,17 @@ How can I assist you today?`,
   };
   
   const handleQuickAction = async (action: QuickAction) => {
-    if (isLoading || !chatContext) return;
+    if (isLoading) return;
+    
+    const enhancedContext = buildEnhancedContext();
+    if (!enhancedContext) {
+      addNotification({
+        type: 'warning',
+        title: 'No Context',
+        message: 'Please select a company first'
+      });
+      return;
+    }
     
     setIsLoading(true);
     setIsTyping(true);
@@ -142,19 +204,19 @@ How can I assist you today?`,
       
       switch (action) {
         case 'summarize':
-          response = await n8nClient.generateSummary(chatContext);
+          response = await n8nClient.generateSummary(enhancedContext);
           actionMessage = 'Generate company summary';
           break;
         case 'scenario_plus':
-          response = await n8nClient.generateScenario('custom', chatContext);
+          response = await n8nClient.generateScenario('custom', enhancedContext);
           actionMessage = 'Generate scenario analysis';
           break;
         case 'bear_case':
-          response = await n8nClient.generateScenario('bear', chatContext);
+          response = await n8nClient.generateScenario('bear', enhancedContext);
           actionMessage = 'Generate bear case scenario';
           break;
         case 'bull_case':
-          response = await n8nClient.generateScenario('bull', chatContext);
+          response = await n8nClient.generateScenario('bull', enhancedContext);
           actionMessage = 'Generate bull case scenario';
           break;
       }
@@ -168,13 +230,19 @@ How can I assist you today?`,
       };
       addChatMessage(userMessage);
       
-      // Add AI response
+      // Add AI response with enhanced metadata
       const aiMessage: ChatMessage = {
         id: `ai-${Date.now()}`,
         content: response.response,
         timestamp: new Date(),
         isUser: false,
-        linkedEvents: response.linkedEvents
+        linkedEvents: response.linkedEvents,
+        metadata: {
+          actionType: action,
+          confidence: response.confidence,
+          sources: response.sources,
+          suggestedActions: response.suggestedActions
+        }
       };
       addChatMessage(aiMessage);
       
@@ -212,8 +280,32 @@ How can I assist you today?`,
   };
   
   const handleEventLinkClick = (eventId: string) => {
-    // This would navigate to or highlight the event in the graph
-    console.log('Navigate to event:', eventId);
+    // Navigate to or highlight the event in the graph
+    const { setSelectedEvent } = useAppStore.getState();
+    
+    // Find the event in the current context
+    const event = chatContext?.eventGraph?.nodes.find(e => e.id === eventId);
+    
+    if (event) {
+      // Select the event in the store
+      setSelectedEvent(event.id);
+      
+      // Add notification
+      addNotification({
+        type: 'info',
+        title: 'Event Selected',
+        message: `Navigated to event: ${event.title}`
+      });
+      
+      console.log('Navigated to event:', eventId, event);
+    } else {
+      console.warn('Event not found:', eventId);
+      addNotification({
+        type: 'warning',
+        title: 'Event Not Found',
+        message: `Could not locate event: ${eventId}`
+      });
+    }
   };
 
   return (
@@ -327,21 +419,66 @@ How can I assist you today?`,
                 />
               ))}
               
-              {/* Show linked events */}
-              {msg.linkedEvents && msg.linkedEvents.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-slate-700/50">
-                  <div className="text-[10px] text-slate-500 mb-1">Related Events:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {msg.linkedEvents.map(eventId => (
-                      <span
-                        key={eventId}
-                        onClick={() => handleEventLinkClick(eventId)}
-                        className="text-[9px] px-2 py-1 bg-primary/20 text-primary rounded cursor-pointer hover:bg-primary/30"
-                      >
-                        {eventId}
-                      </span>
-                    ))}
-                  </div>
+              {/* Show linked events and metadata */}
+              {(msg.linkedEvents && msg.linkedEvents.length > 0) || msg.metadata && (
+                <div className="mt-3 pt-2 border-t border-slate-700/50 space-y-2">
+                  {/* Linked Events */}
+                  {msg.linkedEvents && msg.linkedEvents.length > 0 && (
+                    <div>
+                      <div className="text-[10px] text-slate-500 mb-1">Related Events:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {msg.linkedEvents.map(eventId => (
+                          <span
+                            key={eventId}
+                            onClick={() => handleEventLinkClick(eventId)}
+                            className="text-[9px] px-2 py-1 bg-primary/20 text-primary rounded cursor-pointer hover:bg-primary/30 transition-colors"
+                          >
+                            {eventId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* AI Response Metadata */}
+                  {msg.metadata && !msg.isUser && (
+                    <div className="space-y-1">
+                      {msg.metadata.confidence && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500">Confidence:</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-12 h-1 bg-slate-700 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary rounded-full transition-all"
+                                style={{ width: `${msg.metadata.confidence}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] text-slate-400">
+                              {Math.round(msg.metadata.confidence)}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {msg.metadata.sources && msg.metadata.sources.length > 0 && (
+                        <div>
+                          <span className="text-[10px] text-slate-500">Sources: </span>
+                          <span className="text-[9px] text-slate-400">
+                            {msg.metadata.sources.join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {msg.metadata.actionType && (
+                        <div>
+                          <span className="text-[10px] text-slate-500">Action: </span>
+                          <span className="text-[9px] text-primary capitalize">
+                            {msg.metadata.actionType.replace('_', ' ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

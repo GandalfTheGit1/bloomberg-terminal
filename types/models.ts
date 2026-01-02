@@ -180,6 +180,15 @@ export interface ChatMessage {
   timestamp: Date;
   isUser: boolean;
   linkedEvents?: string[]; // event IDs referenced in the message
+  metadata?: {
+    confidence?: number;
+    sources?: string[];
+    suggestedActions?: string[];
+    actionType?: QuickAction;
+    hasLinkedEvents?: boolean;
+    eventCount?: number;
+    messageLength?: number;
+  };
 }
 
 // Quick action types for chat

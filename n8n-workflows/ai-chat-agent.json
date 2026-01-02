@@ -1,0 +1,192 @@
+{
+  "name": "AI Financial Chat Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Chat Message Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "ai-chat-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate chat message data\nconst body = $input.first().json.body;\n\nif (!body || !body.message) {\n  throw new Error('Missing required message field');\n}\n\nconst chatContext = {\n  message: body.message,\n  companyId: body.companyId || 'default',\n  selectedEvent: body.selectedEvent || null,\n  recentEvents: body.recentEvents || [],\n  financialMetrics: body.financialMetrics || {},\n  eventGraph: body.eventGraph || { nodes: [], edges: [] },\n  timestamp: new Date().toISOString()\n};\n\n// Prepare context for AI processing\nconst contextSummary = {\n  company: chatContext.companyId,\n  eventCount: chatContext.recentEvents.length,\n  hasFinancialData: Object.keys(chatContext.financialMetrics).length > 0,\n  hasSelectedEvent: chatContext.selectedEvent !== null,\n  graphNodeCount: chatContext.eventGraph.nodes.length\n};\n\nreturn {\n  chatContext,\n  contextSummary,\n  userMessage: chatContext.message\n};"
+      },
+      "id": "context-processor",
+      "name": "Process Chat Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an AI financial analyst assistant for a causal terminal. You help users understand financial events, their probabilities, and causal relationships. Always provide probabilistic reasoning rather than deterministic predictions.\n\nContext:\n- Company: {{ $json.chatContext.companyId }}\n- Recent Events: {{ $json.chatContext.recentEvents.length }} events\n- Financial Data Available: {{ $json.contextSummary.hasFinancialData }}\n- Event Graph Nodes: {{ $json.contextSummary.graphNodeCount }}\n\nGuidelines:\n1. Use probabilistic language (\"likely\", \"probability\", \"expected value\")\n2. Reference specific events from the context when relevant\n3. Explain causal relationships between events\n4. Provide actionable insights for financial decision-making\n5. When referencing events, use format: [Event: event_id] for linking"
+            },
+            {
+              "role": "user", 
+              "content": "{{ $json.userMessage }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "id": "openai-chat",
+      "name": "Generate AI Response",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI response and extract event references\nconst aiResponse = $input.first().json.choices[0].message.content;\nconst chatContext = $('context-processor').first().json.chatContext;\n\n// Extract event references from response\nconst eventReferencePattern = /\\[Event: ([^\\]]+)\\]/g;\nconst linkedEvents = [];\nlet match;\n\nwhile ((match = eventReferencePattern.exec(aiResponse)) !== null) {\n  linkedEvents.push(match[1]);\n}\n\n// Format response with metadata\nconst formattedResponse = {\n  id: `msg_${Date.now()}`,\n  content: aiResponse,\n  timestamp: new Date().toISOString(),\n  isUser: false,\n  linkedEvents: linkedEvents,\n  context: {\n    companyId: chatContext.companyId,\n    processedAt: new Date().toISOString(),\n    eventReferencesFound: linkedEvents.length\n  }\n};\n\n// Prepare webhook response\nconst webhookResponse = {\n  success: true,\n  message: formattedResponse,\n  linkedEvents: linkedEvents,\n  processingTime: Date.now() - new Date(chatContext.timestamp).getTime()\n};\n\nreturn webhookResponse;"
+      },
+      "id": "response-formatter",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-condition",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "error-handler",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $json.error || 'Unknown error occurred' }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "id": "error-response",
+      "name": "Send Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "Chat Message Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Chat Context",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Chat Context": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Response": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Send Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCreatedBy": "AI Financial Terminal",
+    "description": "Processes chat messages and generates AI responses with event reference linking and context injection",
+    "tags": ["ai", "chat", "financial", "events"]
+  },
+  "id": "ai-chat-agent",
+  "tags": []
+}

@@ -10,6 +10,16 @@ interface N8NConfig {
   };
   timeout: number;
   retryAttempts: number;
+  authentication?: {
+    type: 'none' | 'basic' | 'bearer' | 'api_key';
+    credentials?: {
+      username?: string;
+      password?: string;
+      token?: string;
+      apiKey?: string;
+      headerName?: string;
+    };
+  };
 }
 
 // Default configuration - can be overridden via environment variables
@@ -21,7 +31,17 @@ const defaultConfig: N8NConfig = {
     socialSentiment: '/webhook/social-sentiment-agent'
   },
   timeout: 30000, // 30 seconds
-  retryAttempts: 3
+  retryAttempts: 3,
+  authentication: {
+    type: (process.env.N8N_AUTH_TYPE as any) || 'none',
+    credentials: {
+      username: process.env.N8N_USERNAME,
+      password: process.env.N8N_PASSWORD,
+      token: process.env.N8N_BEARER_TOKEN,
+      apiKey: process.env.N8N_API_KEY,
+      headerName: process.env.N8N_API_KEY_HEADER || 'X-API-Key'
+    }
+  }
 };
 
 // Request/Response interfaces
@@ -116,14 +136,43 @@ export class N8NClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
+    // Prepare headers with authentication
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    // Add authentication headers based on configuration
+    if (this.config.authentication) {
+      switch (this.config.authentication.type) {
+        case 'basic':
+          if (this.config.authentication.credentials?.username && this.config.authentication.credentials?.password) {
+            const credentials = btoa(`${this.config.authentication.credentials.username}:${this.config.authentication.credentials.password}`);
+            headers['Authorization'] = `Basic ${credentials}`;
+          }
+          break;
+        case 'bearer':
+          if (this.config.authentication.credentials?.token) {
+            headers['Authorization'] = `Bearer ${this.config.authentication.credentials.token}`;
+          }
+          break;
+        case 'api_key':
+          if (this.config.authentication.credentials?.apiKey && this.config.authentication.credentials?.headerName) {
+            headers[this.config.authentication.credentials.headerName] = this.config.authentication.credentials.apiKey;
+          }
+          break;
+        case 'none':
+        default:
+          // No authentication
+          break;
+      }
+    }
+
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(data),
+        headers,
+        body: JSON.stringify({ body: data }), // Wrap data in body for n8n webhook format
         signal: controller.signal,
       });
 
@@ -293,6 +342,52 @@ export class N8NClient {
       status: allHealthy ? 'healthy' : 'unhealthy',
       endpoints: results
     };
+  }
+
+  // Validate webhook endpoints
+  async validateEndpoints(): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = [];
+    
+    try {
+      const healthResult = await this.healthCheck();
+      
+      for (const [endpoint, isHealthy] of Object.entries(healthResult.endpoints)) {
+        if (!isHealthy) {
+          errors.push(`Endpoint '${endpoint}' is not responding`);
+        }
+      }
+      
+      return {
+        valid: errors.length === 0,
+        errors
+      };
+    } catch (error) {
+      errors.push(`Failed to validate endpoints: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return {
+        valid: false,
+        errors
+      };
+    }
+  }
+
+  // Test authentication
+  async testAuthentication(): Promise<{ authenticated: boolean; error?: string }> {
+    try {
+      // Try a simple request to test authentication
+      await this.makeRequest(this.config.webhookEndpoints.chat, { authTest: true });
+      return { authenticated: true };
+    } catch (error) {
+      if (error instanceof N8NError && error.statusCode === 401) {
+        return { 
+          authenticated: false, 
+          error: 'Authentication failed - check credentials' 
+        };
+      }
+      return { 
+        authenticated: false, 
+        error: error instanceof Error ? error.message : 'Unknown authentication error' 
+      };
+    }
   }
 
   // Configuration methods

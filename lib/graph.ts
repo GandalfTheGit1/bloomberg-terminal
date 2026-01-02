@@ -265,23 +265,41 @@ export class EventGraphManager {
       return false;
     }
 
-    const visited = new Set<string>();
-    const queue = [fromId];
-    visited.add(fromId);
-
-    while (queue.length > 0) {
-      const currentId = queue.shift()!;
+    // If checking for self-path, only return true if there's an actual cycle
+    if (fromId === toId) {
+      const visited = new Set<string>();
+      const neighbors = this.adjacencyList.get(fromId) || new Set();
       
-      if (currentId === toId) {
-        return true;
-      }
-
-      const neighbors = this.adjacencyList.get(currentId) || new Set();
       for (const neighbor of neighbors) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push(neighbor);
+        if (this.hasPathHelper(neighbor, toId, visited)) {
+          return true;
         }
+      }
+      return false;
+    }
+
+    const visited = new Set<string>();
+    return this.hasPathHelper(fromId, toId, visited);
+  }
+
+  /**
+   * Helper method for path finding
+   */
+  private hasPathHelper(fromId: string, toId: string, visited: Set<string>): boolean {
+    if (fromId === toId) {
+      return true;
+    }
+
+    if (visited.has(fromId)) {
+      return false;
+    }
+
+    visited.add(fromId);
+    const neighbors = this.adjacencyList.get(fromId) || new Set();
+    
+    for (const neighbor of neighbors) {
+      if (this.hasPathHelper(neighbor, toId, visited)) {
+        return true;
       }
     }
 

@@ -3,10 +3,11 @@ import { resolve } from 'path'
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['node_modules', '.next', 'dist'],
+    setupFiles: ['./test-setup.ts'],
   },
   resolve: {
     alias: {
