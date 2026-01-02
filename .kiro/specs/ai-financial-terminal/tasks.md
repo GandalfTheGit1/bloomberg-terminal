@@ -139,7 +139,7 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
   
   - Commit and push: `git add . && git commit -m "feat: implement Expected Value calculation with tests" && git push`
 
-- [ ] 4.5. Financial Analysis Panel Implementation
+- [x] 4.5. Financial Analysis Panel Implementation
   - [x] 4.5.1 Create FinancialAnalysisPanel component
     - Create components/panels/FinancialAnalysisPanel.tsx
     - Implement tab system (Financial Snapshot, Financial Stress, Earnings Quality, Cycle & Demand)
@@ -147,7 +147,7 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
     - Add industry-aware metric selection logic
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.8, 5.9_
 
-  - [ ] 4.5.2 Implement Financial Snapshot tab
+  - [x] 4.5.2 Implement Financial Snapshot tab
     - Create 2×4 KPI grid with industry-aware metrics
     - Display Cash runway, Net Debt/EBITDA, FCF margin, Gross margin
     - Add Inventory growth vs revenue, Capex/Revenue, ROIC vs WACC, SBC % Revenue
@@ -187,19 +187,19 @@ This implementation plan breaks down the AI Financial Causal Terminal into discr
 
   - Commit and push: `git add . && git commit -m "feat: implement Financial Analysis Panel with all tabs" && git push`
 
-- [ ] 5. Event Graph management
-  - [ ] 5.1 Implement graph data structure and acyclicity validation
+- [-] 5. Event Graph management
+  - [x] 5.1 Implement graph data structure and acyclicity validation
     - Create lib/graph.ts with EventGraph class
     - Implement addNode, addEdge, removeNode, removeEdge methods
     - Implement isAcyclic function using DFS
     - Prevent adding edges that would create cycles
     - _Requirements: 2.1, 12.2, 12.5_
 
-  - [ ] 5.2 Write property test for graph acyclicity
+  - [x] 5.2 Write property test for graph acyclicity
     - **Property 5: Graph Acyclicity**
     - **Validates: Requirements 2.1, 12.5**
 
-  - [ ] 5.3 Write unit tests for graph operations
+  - [x] 5.3 Write unit tests for graph operations
     - Test adding nodes and edges
     - Test cycle detection
     - Test edge removal
